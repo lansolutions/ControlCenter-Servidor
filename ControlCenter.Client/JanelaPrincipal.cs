@@ -72,6 +72,7 @@ namespace ControlCenter.Client
             ControleValidadeProdutos.Atualizar();
             Produtos.SincronizaProdutos();
             Carregamentos.SincronizaCarregamentos();
+            Bonus.SincronizaBonus();
             Usuarios.SincronizaUsuarios();
 
             T =  Task.Run(() =>

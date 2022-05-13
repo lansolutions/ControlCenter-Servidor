@@ -43,7 +43,7 @@ namespace ControlCenter.Client.Classes.Importacao
                 }
                 catch (Exception Ex)
                 {
-                    Logger("Importação de Produtos: Erro ao Exportar: " + Ex.Message);
+                    Logger("Importação de Carregamentos: Erro ao Exportar: " + Ex.Message);
                     return null;
                 }
 
