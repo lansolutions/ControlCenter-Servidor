@@ -24,14 +24,14 @@ namespace ControlCenter.Client
         {
             InitializeComponent();
             Janela.Principal = this;
-            BancoPostGres NovoBanco = new BancoPostGres();
-            BancoParceiro NovoBancoParceiro = new BancoParceiro();
+            new BancoPostGres();
+            new BancoParceiro();
 
             Notificacao.ConfigurarMenuNotificacao();
         }
         private void JanelaPrincipal_Load(object sender, EventArgs e)
         {
-            Socket.IniciarServidor(null, null); string value = "Eus00o19";           
+            Socket.IniciarServidor(null, null);      
         }
 
        
@@ -73,6 +73,7 @@ namespace ControlCenter.Client
             Produtos.SincronizaProdutos();
             Carregamentos.SincronizaCarregamentos();
             Bonus.SincronizaBonus();
+            Pedido.SincronizaPedido();
             Usuarios.SincronizaUsuarios();
 
             T =  Task.Run(() =>

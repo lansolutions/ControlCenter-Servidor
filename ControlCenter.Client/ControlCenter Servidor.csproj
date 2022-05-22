@@ -98,6 +98,7 @@
     <Compile Include="Autenticador.cs" />
     <Compile Include="BancoParceiro.cs" />
     <Compile Include="BancoPostGres.cs" />
+    <Compile Include="Classes\Importacao\Pedidos.cs" />
     <Compile Include="Classes\Importacao\Bonus.cs" />
     <Compile Include="Classes\Importacao\Carregamentos.cs" />
     <Compile Include="Classes\Importacao\Produtos.cs" />

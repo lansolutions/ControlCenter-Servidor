@@ -12,7 +12,7 @@ namespace ControlCenter.Client
     {
         public static string StringConexao = String.Empty;       
 
-        private string LocalArquivoString = @"C:\ControlCenter\bin\ControlCenter.ini";
+        private string LocalArquivoString = @"C:\LanSolutions\ControlCenter-Servidor\ControlCenter-Servidor.ini";
 
         public BancoPostGres()
         {

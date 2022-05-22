@@ -33,7 +33,7 @@ namespace ControlCenter.Client.Classes.Importacao
 
                 OleDbDataAdapter adapter = new OleDbDataAdapter(SQL, WinthorLogin);
 
-                adapter.SelectCommand.Parameters.Add("@codfilial", OleDbType.VarChar).Value = File.ReadAllLines(@"C:\ControlCenter\bin\Filial.ini")[0];
+                adapter.SelectCommand.Parameters.Add("@codfilial", OleDbType.VarChar).Value = File.ReadAllLines(@"C:\LanSolutions\ControlCenter-Servidor\Filial.ini")[0];
 
                 try
                 {
@@ -68,7 +68,7 @@ namespace ControlCenter.Client.Classes.Importacao
 
                 DataTable DatasNovas = new DataTable();
 
-                adapter.SelectCommand.Parameters.Add("@codfilial", OleDbType.VarChar).Value = File.ReadAllLines(@"C:\ControlCenter\bin\Filial.ini")[0];
+                adapter.SelectCommand.Parameters.Add("@codfilial", OleDbType.VarChar).Value = File.ReadAllLines(@"C:\LanSolutions\ControlCenter-Servidor\Filial.ini")[0];
 
                 try
                 {

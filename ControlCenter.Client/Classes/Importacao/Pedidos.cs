@@ -12,36 +12,34 @@ using System.Data.OleDb;
 
 namespace ControlCenter.Client.Classes.Importacao
 {
-    public class Bonus
+    public class Pedido
     {
 
-        public static void SincronizaBonus()
+        public static void SincronizaPedido()
         {
-            InserirBonus.ImportaBonus();
-            AtualizaBonus._AtualizaBonus();
+            InserirPedido.ImportaPedido();
+            AtualizaPedido._AtualizaPedido();
             CargaDeProduto.CargaProduto();
         }
 
-        internal class InserirBonus
+        internal class InserirPedido
         {
-            private static DataTable ExportaBonus()
+            private static DataTable ExportaPedido()
             {
                 OleDbConnection WinthorLogin = new OleDbConnection(BancoParceiro.StringConexao);
-                string SQL = "select distinct tab1.numbonus, tab2.fornecedor from(select pcbonusc.NUMBONUS from pcbonusc where pcbonusc.DATABONUS >= trunc(sysdate) - 30 and pcbonusc.DTCANCEL is null) tab1, (select pcnfent.codfornec, pcnfent.NUMBONUS, pcfornec.FORNECEDOR from pcnfent, pcfornec where pcfornec.CODFORNEC = pcnfent.CODFORNEC) tab2 where tab1.numbonus = tab2.numbonus and tab1.numbonus != 8539 ";
-                DataTable Bonus = new DataTable();
+                string SQL = "select numped, cliente as descricao from pcpedc, pcclient where pcclient.codcli = pcpedc.CODCLI and pcpedc.DATA >= trunc(sysdate) - 30 and pcpedc.DTCANCEL is null and pcpedc.DTFAT is null and pcpedc.NUMCAR = 0 and posicao in('L','M','F')";
+                DataTable Pedido = new DataTable();
                 OleDbDataAdapter adapter = new OleDbDataAdapter(SQL, WinthorLogin);
 
                 try
                 {
                     WinthorLogin.Open();
 
-                    adapter.Fill(Bonus);
+                    adapter.Fill(Pedido);
 
                     WinthorLogin.Dispose();
 
-                    
-
-                    return Bonus;
+                    return Pedido;
 
                 }
                 catch (Exception Ex)
@@ -53,18 +51,18 @@ namespace ControlCenter.Client.Classes.Importacao
 
             }
 
-            private static DataTable FiltraBonus()
+            private static DataTable FiltraPedido()
             {
-                DataTable BonusBruto = ExportaBonus();
+                DataTable PedidoBruto = ExportaPedido();
 
-                DataTable BonusFiltrado = BonusBruto;
+                DataTable PedidoFiltrado = PedidoBruto;
 
                 NpgsqlConnection lanConexão = new NpgsqlConnection("Server = 10.40.100.90; Port = 5432; User Id = sulfrios; Password = Eus00o19; Database = postgres;");
-                string SQL = "select codbonus from lanexpedicao_bonus";
+                string SQL = "select codpedido from lanexpedicao_pedido";
                 
-                DataTable Bonus = new DataTable();
-                Bonus.Columns.Add("codbonus");
-                Bonus.PrimaryKey = new DataColumn[] { Bonus.Columns[0] };
+                DataTable Pedido = new DataTable();
+                Pedido.Columns.Add("codpedido");
+                Pedido.PrimaryKey = new DataColumn[] { Pedido.Columns[0] };
 
                 NpgsqlDataAdapter adapter = new NpgsqlDataAdapter(SQL, lanConexão);
 
@@ -72,44 +70,44 @@ namespace ControlCenter.Client.Classes.Importacao
                 {
                     lanConexão.Open();
 
-                    adapter.Fill(Bonus);
+                    adapter.Fill(Pedido);
 
                     lanConexão.Dispose();
 
 
-                    for (int i = BonusBruto.Rows.Count - 1; i >= 0; i--)
+                    for (int i = PedidoBruto.Rows.Count - 1; i >= 0; i--)
                     {
-                        if (Bonus.Rows.Contains(BonusBruto.Rows[i][0]))
+                        if (Pedido.Rows.Contains(PedidoBruto.Rows[i][0]))
                         {
-                            DataRow dr = BonusFiltrado.Rows[i];
+                            DataRow dr = PedidoFiltrado.Rows[i];
                             dr.Delete();
-                            BonusFiltrado.AcceptChanges();
+                            PedidoFiltrado.AcceptChanges();
                         }
 
                     }
 
-                    return BonusFiltrado;
+                    return PedidoFiltrado;
 
                 }
                 catch (Exception Ex)
                 {
-                    Logger("Importação de Bônus: Erro ao importar: " + Ex.Message);
+                    Logger("Importação de Pedido: Erro ao importar: " + Ex.Message);
                     MessageBox.Show(Ex.ToString());
                     return null;
                 }
             }
 
-            public static void ImportaBonus()
+            public static void ImportaPedido()
             {
-                DataTable Bonus = FiltraBonus();
+                DataTable Pedido = FiltraPedido();
 
-                foreach (DataRow rw in Bonus.Rows)
+                foreach (DataRow rw in Pedido.Rows)
                 {
                     NpgsqlConnection lanConexão = new NpgsqlConnection("Server = 10.40.100.90; Port = 5432; User Id = sulfrios; Password = Eus00o19; Database = postgres;");
-                    string SQL = "insert into lanexpedicao_bonus(codbonus, descricao, data_importacao) values(@codbonus, @descricao, now())";
+                    string SQL = "insert into lanexpedicao_pedido(codpedido, descricao, data_importacao) values(@codpedido, @descricao, now())";
                     NpgsqlCommand cmd = new NpgsqlCommand(SQL, lanConexão);
 
-                    cmd.Parameters.Add(new NpgsqlParameter("@codbonus", NpgsqlDbType.Integer)).Value = Convert.ToInt32(rw[0]);
+                    cmd.Parameters.Add(new NpgsqlParameter("@codpedido", NpgsqlDbType.Bigint)).Value = Convert.ToInt64(rw[0]);
                     cmd.Parameters.Add(new NpgsqlParameter("@descricao", OleDbType.VarChar)).Value = rw[1];
 
                     try
@@ -123,14 +121,14 @@ namespace ControlCenter.Client.Classes.Importacao
                     }
                     catch (Exception Ex)
                     {
-                        Logger("Importação de Bônus: Erro ao importar: " + Ex.Message);
+                        Logger("Importação de Pedidos: Erro ao importar: " + Ex.Message);
 
                     }
                 }
 
-                if (Bonus.Rows.Count != 0)
+                if (Pedido.Rows.Count != 0)
                 {
-                    Logger($"Importação de Bônus: {Bonus.Rows.Count} Bônus(s) Importado(s)");
+                    Logger($"Importação de Pedidos: {Pedido.Rows.Count} Pedido(s) Importado(s)");
 
                 }
 
@@ -138,47 +136,47 @@ namespace ControlCenter.Client.Classes.Importacao
             }
         }
 
-        internal class AtualizaBonus
+        internal class AtualizaPedido
         {
-            private static DataTable ExportaBonus()
+            private static DataTable ExportaPedido()
             {
                 OleDbConnection WinthorLogin = new OleDbConnection(BancoParceiro.StringConexao);
-                string SQL = "select distinct numbonus as codbonus, dtcancel from pcbonusc where databonus >= trunc(sysdate)-30 and dtcancel is not null";
-                DataTable Bonus = new DataTable();
+                string SQL = "select numped as codpedido, dtcancel from pcpedc where data >= trunc(sysdate)-30 and dtcancel is not null";
+                DataTable Pedido = new DataTable();
                 OleDbDataAdapter adapter = new OleDbDataAdapter(SQL, WinthorLogin);
 
                 try
                 {
                     WinthorLogin.Open();
 
-                    adapter.Fill(Bonus);
+                    adapter.Fill(Pedido);
 
                     WinthorLogin.Dispose();
 
-                    return Bonus;
+                    return Pedido;
 
                 }
                 catch (Exception Ex)
                 {
-                    Logger("Atualização de Bônus: Erro ao Exportar: " + Ex.Message);
+                    Logger("Atualização de Pedido: Erro ao Exportar: " + Ex.Message);
                     return null;
                 }
 
 
             }
 
-            private static DataTable FiltraBonus()
+            private static DataTable FiltraPedido()
             {
-                DataTable BonusBruto = ExportaBonus();
+                DataTable PedidoBruto = ExportaPedido();
 
-                DataTable BonusFiltrado = BonusBruto;
+                DataTable PedidoFiltrado = PedidoBruto;
 
                 NpgsqlConnection lanConexão = new NpgsqlConnection("Server = 10.40.100.90; Port = 5432; User Id = sulfrios; Password = Eus00o19; Database = postgres;");
-                string SQL = "select codbonus from lanexpedicao_bonus where data_cancelamento is null";
+                string SQL = "select codpedido from lanexpedicao_pedido where data_cancelamento is null";
 
-                DataTable Bonus = new DataTable();
-                Bonus.Columns.Add("codbonus");
-                Bonus.PrimaryKey = new DataColumn[] { Bonus.Columns[0] };
+                DataTable Pedido = new DataTable();
+                Pedido.Columns.Add("codpedido");
+                Pedido.PrimaryKey = new DataColumn[] { Pedido.Columns[0] };
 
                 NpgsqlDataAdapter adapter = new NpgsqlDataAdapter(SQL, lanConexão);
 
@@ -186,44 +184,44 @@ namespace ControlCenter.Client.Classes.Importacao
                 {
                     lanConexão.Open();
 
-                    adapter.Fill(Bonus);
+                    adapter.Fill(Pedido);
 
                     lanConexão.Dispose();
 
-                    for (int i = BonusBruto.Rows.Count - 1; i >= 0; i--)
+                    for (int i = PedidoBruto.Rows.Count - 1; i >= 0; i--)
                     {
-                        if (Bonus.Rows.Contains(BonusBruto.Rows[i][0]))
+                        if (Pedido.Rows.Contains(PedidoBruto.Rows[i][0]))
                         {
-                            DataRow dr = BonusFiltrado.Rows[i];
+                            DataRow dr = PedidoFiltrado.Rows[i];
                             dr.Delete();
-                            BonusFiltrado.AcceptChanges();
+                            PedidoFiltrado.AcceptChanges();
                         }
 
                     }
 
-                    return BonusFiltrado;
+                    return PedidoFiltrado;
 
                 }
                 catch (Exception Ex)
                 {
-                    Logger("Atualização de Bônus: Erro ao Filtrar: " + Ex.Message);
+                    Logger("Atualização de Pedido: Erro ao Filtrar: " + Ex.Message);
 
                     return null;
                 }
             }
 
-            public static void _AtualizaBonus()
+            public static void _AtualizaPedido()
             {
-                DataTable Bonus = FiltraBonus();
+                DataTable Pedido = FiltraPedido();
 
-                foreach (DataRow rw in Bonus.Rows)
+                foreach (DataRow rw in Pedido.Rows)
                 {
                     NpgsqlConnection lanConexão = new NpgsqlConnection("Server = 10.40.100.90; Port = 5432; User Id = sulfrios; Password = Eus00o19; Database = postgres;");
-                    string SQL = "update lanexpedicao_bonus set data_cancelamento = @data_cancelamento, idusuario_cancelamento = 9999, idusuario_master_cancelamento = 9999 where codbonus = @codbonus ";
+                    string SQL = "update lanexpedicao_pedido set data_cancelamento = @data_cancelamento, idusuario_cancelamento = 9999, idusuario_master_cancelamento = 9999 where codpedido = @codpedido ";
                     NpgsqlCommand cmd = new NpgsqlCommand(SQL, lanConexão);
 
                     cmd.Parameters.Add(new NpgsqlParameter("@data_cancelamento", OleDbType.Date)).Value = rw[1];
-                    cmd.Parameters.Add(new NpgsqlParameter("@codbonus", NpgsqlDbType.Integer)).Value = Convert.ToInt32(rw[0]);
+                    cmd.Parameters.Add(new NpgsqlParameter("@codpedido", NpgsqlDbType.Bigint)).Value = Convert.ToInt64(rw[0]);
 
                     try
                     {
@@ -236,13 +234,13 @@ namespace ControlCenter.Client.Classes.Importacao
                     }
                     catch (Exception Ex)
                     {
-                        Logger("Atualização de Produtos: Erro ao Atualizar: " + Ex.Message);
+                        Logger("Atualização de Pedidos: Erro ao Atualizar: " + Ex.Message);
                     }
                 }
 
-                if (Bonus.Rows.Count != 0)
+                if (Pedido.Rows.Count != 0)
                 {
-                    Logger($"Atualização de Bônus: {Bonus.Rows.Count} Bônus Atualizado(s)");
+                    Logger($"Atualização de Pedido: {Pedido.Rows.Count} Pedido(s) Atualizado(s)");
                 }
 
 
@@ -251,14 +249,14 @@ namespace ControlCenter.Client.Classes.Importacao
         
         internal class CargaDeProduto
         {
-            private static DataTable Bonus()
+            private static DataTable Pedido()
             {
                 NpgsqlConnection lanConexão = new NpgsqlConnection("Server = 10.40.100.90; Port = 5432; User Id = sulfrios; Password = Eus00o19; Database = postgres;");
                 //string SQL = "select expe.id, expe.codcarreg from lanexpedicao_carregamento as expe, lanconferencia_carregamento as conf ";
 
-                string SQL = "select expe.id, expe.codbonus from lanexpedicao_bonus as expe where expe.id not in(select distinct idbonus from lanconferencia_bonus)";
+                string SQL = "select expe.id, expe.codpedido from lanexpedicao_pedido as expe where expe.id not in(select distinct idpedido from lanconferencia_pedido)";
 
-                DataTable Bonus = new DataTable();
+                DataTable Pedido = new DataTable();
                 /*Carregamentos.Columns.Add("codcarreg");
                 Carregamentos.PrimaryKey = new DataColumn[] { Carregamentos.Columns[0] };*/
 
@@ -268,40 +266,40 @@ namespace ControlCenter.Client.Classes.Importacao
                 {
                     lanConexão.Open();
 
-                    adapter.Fill(Bonus);
+                    adapter.Fill(Pedido);
 
                     lanConexão.Dispose();
 
-                    return Bonus;
+                    return Pedido;
 
                 }
                 catch (Exception Ex)
                 {
-                    Logger("Carga de Produtos: Erro ao Exportar Bônus: " + Ex.Message);
+                    Logger("Carga de Produtos: Erro ao Exportar Pedido: " + Ex.Message);
                     return null;
                 }
             }
 
-            private static DataTable ExportaProduto(int numbonus)
+            private static DataTable ExportaProduto(Int64 numPedido)
             {
 
                 OleDbConnection WinthorLogin = new OleDbConnection(BancoParceiro.StringConexao);
-                string SQL = "select codprod, sum(qtnf) as qt from pcbonusi where numbonus = ? group by codprod";
+                string SQL = "select codprod, sum(qt) as qt from pcpedi where numped = ? group by codprod";
 
-                DataTable Bonus = new DataTable();
+                DataTable Pedido = new DataTable();
                 OleDbDataAdapter adapter = new OleDbDataAdapter(SQL, WinthorLogin);
 
-                adapter.SelectCommand.Parameters.Add("@numbonus", OleDbType.Integer).Value = numbonus;
+                adapter.SelectCommand.Parameters.Add("@numped", OleDbType.BigInt).Value = numPedido;
 
                 try
                 {
                     WinthorLogin.Open();
 
-                    adapter.Fill(Bonus);
+                    adapter.Fill(Pedido);
 
                     WinthorLogin.Dispose();
 
-                    return Bonus;
+                    return Pedido;
 
                 }
                 catch (Exception Ex)
@@ -316,12 +314,12 @@ namespace ControlCenter.Client.Classes.Importacao
 
             public static void CargaProduto()
             {
-                DataTable _Bonus = Bonus();
+                DataTable _Pedido = Pedido();
                 int CargaRealizada = 0;
 
-                foreach (DataRow Row in _Bonus.Rows)
+                foreach (DataRow Row in _Pedido.Rows)
                 {
-                    DataTable Produtos = ExportaProduto(Convert.ToInt32(Row[1]));
+                    DataTable Produtos = ExportaProduto(Convert.ToInt64(Row[1]));
 
 
                     if (Produtos.Rows.Count != 0)
@@ -329,13 +327,13 @@ namespace ControlCenter.Client.Classes.Importacao
                         foreach (DataRow row in Produtos.Rows)
                         {
                             NpgsqlConnection lanConexão = new NpgsqlConnection("Server = 10.40.100.90; Port = 5432; User Id = sulfrios; Password = Eus00o19; Database = postgres;");
-                            string SQL = "insert into lanconferencia_bonus(codbonus, codprod, qt_real, idbonus) values(@codbonus, @codprod, @qt_real, @idbonus)";
+                            string SQL = "insert into lanconferencia_pedido(codPedido, codprod, qt_real, idPedido) values(@codpedido, @codprod, @qt_real, @idpedido)";
                             NpgsqlCommand cmd = new NpgsqlCommand(SQL, lanConexão);
 
-                            cmd.Parameters.Add(new NpgsqlParameter("@codbonus", NpgsqlDbType.Integer)).Value = Convert.ToInt32(Row[1]);
+                            cmd.Parameters.Add(new NpgsqlParameter("@codpedido", NpgsqlDbType.Bigint)).Value = Row[1];
                             cmd.Parameters.Add(new NpgsqlParameter("@codprod", NpgsqlDbType.Integer)).Value = Convert.ToInt32(row[0]);
                             cmd.Parameters.Add(new NpgsqlParameter("@qt_real", NpgsqlDbType.Numeric)).Value = Convert.ToDecimal(row[1]);
-                            cmd.Parameters.Add(new NpgsqlParameter("@idbonus", NpgsqlDbType.Numeric)).Value = Convert.ToInt32(Row[0]);
+                            cmd.Parameters.Add(new NpgsqlParameter("@idpedido", NpgsqlDbType.Numeric)).Value = Convert.ToInt32(Row[0]);
 
                             try
                             {

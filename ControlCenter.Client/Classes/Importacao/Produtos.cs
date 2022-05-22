@@ -134,10 +134,10 @@ namespace ControlCenter.Client.Classes.Importacao
             }
         }
 
-        private static void ImportaProdutos(string idproduto_parceiro, string descricao, string embalagem, int idempresa)
+        private static void ImportaProdutos(string idproduto_parceiro, string descricao, string embalagem, int idparceiro)
         {
             NpgsqlConnection lanConexão = new NpgsqlConnection("Server = 10.40.100.90; Port = 5432; User Id = sulfrios; Password = Eus00o19; Database = postgres;");
-            string SQL = "insert into lanprodutos(idproduto_parceiro, descricao, embalagem, permite_multiplicar, idusuario_insercao, data_insercao, idempresa, codbarras1, qtunit1) values(@idproduto_parceiro, @descricao, @embalagem, 'N', 9999, now(), @idempresa, 0, 0) ";
+            string SQL = "insert into lanprodutos(idproduto_parceiro, descricao, embalagem, permite_multiplicar, idusuario_insercao, data_insercao, idparceiro, codbarras1, qtunit1) values(@idproduto_parceiro, @descricao, @embalagem, 'N', 9999, now(), @idparceiro, 0, 0) ";
 
 
             NpgsqlCommand cmd = new NpgsqlCommand(SQL, lanConexão);
@@ -145,7 +145,7 @@ namespace ControlCenter.Client.Classes.Importacao
             cmd.Parameters.Add(new NpgsqlParameter("@idproduto_parceiro", NpgsqlDbType.Integer)).Value = Convert.ToInt32(idproduto_parceiro);
             cmd.Parameters.Add(new NpgsqlParameter("@descricao", OleDbType.VarChar)).Value = descricao;
             cmd.Parameters.Add(new NpgsqlParameter("@embalagem", OleDbType.VarChar)).Value = embalagem;
-            cmd.Parameters.Add(new NpgsqlParameter("@idempresa", OleDbType.Integer)).Value = idempresa;
+            cmd.Parameters.Add(new NpgsqlParameter("@idparceiro", OleDbType.Integer)).Value = idparceiro;
 
             try
             {
