@@ -91,7 +91,7 @@ namespace ControlCenter.Client.Classes.Importacao
 
                 catch (Exception Ex)
                 {
-                    MessageBox.Show(Ex.ToString());
+                    Logger(Ex.ToString());
                 }
 
             }
@@ -105,7 +105,7 @@ namespace ControlCenter.Client.Classes.Importacao
             }
             catch(Exception Ex)
             {
-                MessageBox.Show(Ex.ToString()); 
+                Logger(Ex.ToString()); 
             }
 
            

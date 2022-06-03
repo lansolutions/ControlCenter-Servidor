@@ -27,7 +27,7 @@ namespace ControlCenter.Client.Classes.Importacao
             private static DataTable ExportaBonus()
             {
                 OleDbConnection WinthorLogin = new OleDbConnection(BancoParceiro.StringConexao);
-                string SQL = "select distinct tab1.numbonus, tab2.fornecedor from(select pcbonusc.NUMBONUS from pcbonusc where pcbonusc.DATABONUS >= trunc(sysdate) - 30 and pcbonusc.DTCANCEL is null) tab1, (select pcnfent.codfornec, pcnfent.NUMBONUS, pcfornec.FORNECEDOR from pcnfent, pcfornec where pcfornec.CODFORNEC = pcnfent.CODFORNEC) tab2 where tab1.numbonus = tab2.numbonus and tab1.numbonus != 8539 ";
+                string SQL = "select distinct tab1.numbonus, tab2.fornecedor from(select pcbonusc.NUMBONUS from pcbonusc where pcbonusc.DATABONUS >= trunc(sysdate) - 30 and pcbonusc.DTCANCEL is null) tab1, (select pcnfent.codfornec, pcnfent.NUMBONUS, pcfornec.FORNECEDOR from pcnfent, pcfornec where pcfornec.CODFORNEC = pcnfent.CODFORNEC and pcfornec.revenda = 'S') tab2 where tab1.numbonus = tab2.numbonus and tab1.numbonus != 8539 ";
                 DataTable Bonus = new DataTable();
                 OleDbDataAdapter adapter = new OleDbDataAdapter(SQL, WinthorLogin);
 
@@ -94,7 +94,6 @@ namespace ControlCenter.Client.Classes.Importacao
                 catch (Exception Ex)
                 {
                     Logger("Importação de Bônus: Erro ao importar: " + Ex.Message);
-                    MessageBox.Show(Ex.ToString());
                     return null;
                 }
             }
@@ -106,11 +105,12 @@ namespace ControlCenter.Client.Classes.Importacao
                 foreach (DataRow rw in Bonus.Rows)
                 {
                     NpgsqlConnection lanConexão = new NpgsqlConnection("Server = 10.40.100.90; Port = 5432; User Id = sulfrios; Password = Eus00o19; Database = postgres;");
-                    string SQL = "insert into lanexpedicao_bonus(codbonus, descricao, data_importacao) values(@codbonus, @descricao, now())";
+                    string SQL = "insert into lanexpedicao_bonus(codbonus, descricao, data_importacao, idparceiro) values(@codbonus, @descricao, now(), @idparceiro)";
                     NpgsqlCommand cmd = new NpgsqlCommand(SQL, lanConexão);
 
                     cmd.Parameters.Add(new NpgsqlParameter("@codbonus", NpgsqlDbType.Integer)).Value = Convert.ToInt32(rw[0]);
                     cmd.Parameters.Add(new NpgsqlParameter("@descricao", OleDbType.VarChar)).Value = rw[1];
+                    cmd.Parameters.Add(new NpgsqlParameter("@idparceiro", NpgsqlDbType.Integer)).Value = 2;
 
                     try
                     {
@@ -306,7 +306,6 @@ namespace ControlCenter.Client.Classes.Importacao
                 }
                 catch (Exception Ex)
                 {
-                    MessageBox.Show(Ex.ToString());
                     Logger("Carga de Produtos: Erro ao Exportar Produtos: " + Ex.Message);
                     return null;
                 }

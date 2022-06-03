@@ -32,7 +32,7 @@ namespace ControlCenter.Client
         private static void ConfiguraTimer()
         {
             myTimer.Elapsed += new ElapsedEventHandler(TempoAtingindo);
-            myTimer.Interval = 60000;
+            myTimer.Interval = 120000;
             myTimer.Enabled = true;
         }
 

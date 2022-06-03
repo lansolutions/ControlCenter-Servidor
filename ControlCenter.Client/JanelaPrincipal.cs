@@ -76,13 +76,13 @@ namespace ControlCenter.Client
             Pedido.SincronizaPedido();
             Usuarios.SincronizaUsuarios();
 
-            T =  Task.Run(() =>
+            /*T =  Task.Run(() =>
             {
                 
             });
              
 
-            Task.WhenAll(T).Wait(); 
+            Task.WhenAll(T).Wait(); */
 
             Log.Logger("Sincronização Finalizada");
 

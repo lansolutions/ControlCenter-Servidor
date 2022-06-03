@@ -27,7 +27,7 @@ namespace ControlCenter.Client.Classes.Importacao
             private static DataTable ExportaPedido()
             {
                 OleDbConnection WinthorLogin = new OleDbConnection(BancoParceiro.StringConexao);
-                string SQL = "select numped, cliente as descricao from pcpedc, pcclient where pcclient.codcli = pcpedc.CODCLI and pcpedc.DATA >= trunc(sysdate) - 30 and pcpedc.DTCANCEL is null and pcpedc.DTFAT is null and pcpedc.NUMCAR = 0 and posicao in('L','M','F')";
+                string SQL = "select numped, cliente as descricao from pcpedc, pcclient where pcclient.codcli = pcpedc.CODCLI and pcpedc.DATA >= trunc(sysdate) - 30 and pcpedc.DTCANCEL is null and pcpedc.NUMCAR = 0 and posicao in('L','M','F')";
                 DataTable Pedido = new DataTable();
                 OleDbDataAdapter adapter = new OleDbDataAdapter(SQL, WinthorLogin);
 
@@ -92,7 +92,6 @@ namespace ControlCenter.Client.Classes.Importacao
                 catch (Exception Ex)
                 {
                     Logger("Importação de Pedido: Erro ao importar: " + Ex.Message);
-                    MessageBox.Show(Ex.ToString());
                     return null;
                 }
             }
@@ -104,11 +103,12 @@ namespace ControlCenter.Client.Classes.Importacao
                 foreach (DataRow rw in Pedido.Rows)
                 {
                     NpgsqlConnection lanConexão = new NpgsqlConnection("Server = 10.40.100.90; Port = 5432; User Id = sulfrios; Password = Eus00o19; Database = postgres;");
-                    string SQL = "insert into lanexpedicao_pedido(codpedido, descricao, data_importacao) values(@codpedido, @descricao, now())";
+                    string SQL = "insert into lanexpedicao_pedido(codpedido, descricao, data_importacao, idparceiro) values(@codpedido, @descricao, now(), @idparceiro)";
                     NpgsqlCommand cmd = new NpgsqlCommand(SQL, lanConexão);
 
                     cmd.Parameters.Add(new NpgsqlParameter("@codpedido", NpgsqlDbType.Bigint)).Value = Convert.ToInt64(rw[0]);
                     cmd.Parameters.Add(new NpgsqlParameter("@descricao", OleDbType.VarChar)).Value = rw[1];
+                    cmd.Parameters.Add(new NpgsqlParameter("@idparceiro", NpgsqlDbType.Integer)).Value = 2;
 
                     try
                     {
@@ -304,7 +304,6 @@ namespace ControlCenter.Client.Classes.Importacao
                 }
                 catch (Exception Ex)
                 {
-                    MessageBox.Show(Ex.ToString());
                     Logger("Carga de Produtos: Erro ao Exportar Produtos: " + Ex.Message);
                     return null;
                 }

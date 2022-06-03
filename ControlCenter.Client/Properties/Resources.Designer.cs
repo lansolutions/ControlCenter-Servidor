@@ -59,15 +59,5 @@ namespace ControlCenter.Client.Properties {
                 resourceCulture = value;
             }
         }
-        
-        /// <summary>
-        ///   Consulta um recurso localizado do tipo System.Drawing.Icon semelhante a (Ícone).
-        /// </summary>
-        internal static System.Drawing.Icon Logo_Azul {
-            get {
-                object obj = ResourceManager.GetObject("Logo_Azul", resourceCulture);
-                return ((System.Drawing.Icon)(obj));
-            }
-        }
     }
 }

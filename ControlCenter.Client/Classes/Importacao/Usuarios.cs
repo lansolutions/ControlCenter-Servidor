@@ -94,7 +94,7 @@ namespace ControlCenter.Client.Classes.Importacao
                         }
                         catch (Exception Ex)
                         {
-                            Logs.Log.Logger("Importação de Usuários@ Erro ao Importar@ " + Ex.Message); MessageBox.Show(Ex.ToString());
+                            Logs.Log.Logger("Importação de Usuários@ Erro ao Importar@ " + Ex.Message); 
                             return;
                         }
                     }
@@ -217,14 +217,14 @@ namespace ControlCenter.Client.Classes.Importacao
                         }
                         catch (Exception Ex)
                         {
-                            Logs.Log.Logger("Importação de Usuários: Erro ao Importar: " + Ex.Message); MessageBox.Show(Ex.ToString());
+                            Logs.Log.Logger("Importação de Usuários: Erro ao Importar: " + Ex.Message);
                             return;
                         }
                     }
                 }
                 catch (Exception e)
                 {
-                    Logger(e.ToString()); MessageBox.Show(e.ToString());
+                    Logger(e.ToString());
                 }
 
 

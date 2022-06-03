@@ -91,7 +91,6 @@ namespace ControlCenter.Client.Classes.Importacao
                 catch (Exception Ex)
                 {
                     Logger("Importação de Produtos: Erro ao importar: " + Ex.Message);
-                    MessageBox.Show(Ex.ToString());
 
                    
                     return null;
@@ -105,11 +104,12 @@ namespace ControlCenter.Client.Classes.Importacao
                 foreach (DataRow rw in Carregamento.Rows)
                 {
                     NpgsqlConnection lanConexão = new NpgsqlConnection("Server = 10.40.100.90; Port = 5432; User Id = sulfrios; Password = Eus00o19; Database = postgres;");
-                    string SQL = "insert into lanexpedicao_carregamento(codcarreg, destino, data_importacao) values(@codcarreg, @destino, now())";
+                    string SQL = "insert into lanexpedicao_carregamento(codcarreg, destino, data_importacao, idparceiro) values(@codcarreg, @destino, now(), @idparceiro)";
                     NpgsqlCommand cmd = new NpgsqlCommand(SQL, lanConexão);
 
                     cmd.Parameters.Add(new NpgsqlParameter("@codcarreg", NpgsqlDbType.Integer)).Value = Convert.ToInt32(rw[0]);
-                    cmd.Parameters.Add(new NpgsqlParameter("@destino", OleDbType.VarChar)).Value = rw[1];                    
+                    cmd.Parameters.Add(new NpgsqlParameter("@destino", OleDbType.VarChar)).Value = rw[1];
+                    cmd.Parameters.Add(new NpgsqlParameter("@idparceiro", NpgsqlDbType.Integer)).Value = 2;
 
                     try
                     {
@@ -305,7 +305,6 @@ namespace ControlCenter.Client.Classes.Importacao
                 }
                 catch (Exception Ex)
                 {
-                    MessageBox.Show(Ex.ToString());
                     Logger("Carga de Produtos: Erro ao Exportar Produtos: " + Ex.Message);
                     return null;
                 }

@@ -98,10 +98,10 @@ namespace ControlCenter.Client
         
         private void MontarString()
         {
-            
+            //Provider = MSDAORA;
             if (String.Sgbd.Contains("oracle"))
             {
-                StringConexao = $"Provider=MSDAORA; Data Source=(DESCRIPTION=(CID=GTU_APP)(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST={String.Host})(PORT=1521)))(CONNECT_DATA=(SID={String.Schema})(SERVER=DEDICATED))); User Id={String.Usuario}; Password={String.Senha};";
+                StringConexao = $"Provider = MSDAORA; Data Source=(DESCRIPTION=(CID=GTU_APP)(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST={String.Host})(PORT=1521)))(CONNECT_DATA=(SID={String.Schema})(SERVER=DEDICATED))); User Id={String.Usuario}; Password={String.Senha};";
             }
             
             else if (String.Sgbd.Contains("MySQL"))
