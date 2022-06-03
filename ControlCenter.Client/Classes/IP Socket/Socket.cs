@@ -77,9 +77,7 @@ namespace ControlCenter.Client.Classes.IP_Socket
 
             try
             {
-                string Dados = Encoding.UTF8.GetString(e.Data);
-
-               
+                string Dados = Encoding.UTF8.GetString(e.Data);              
 
                 if (Dados.Contains("ForcarSincronizacao"))
                 {
@@ -160,41 +158,15 @@ namespace ControlCenter.Client.Classes.IP_Socket
                     pd.Dispose();
                 }
 
-                else if (Dados.Contains("RequisicaoDePeso"))
-                {
-                    string IpClient = new ConfiguracaoDosParametros().DadosParametros.Where(x => x.Nome == "ENDEREÇO IPV4 PORTA COM > PORTA LAN").FirstOrDefault().Valor;
-                    using (SimpleTcpClient client = new SimpleTcpClient($"{IpClient}:3700"))
-                    {
-                        client.Connect();
-
-                        client.Send("RequisicaoDePeso");
-
-                        client.Events.DataSent += (s, f) => { client.Disconnect(); };
-                    }
-                    
-                }
-
-                else if (Dados.Contains("Peso;"))
-                {
-                    string IpClient = e.IpPort.Split(':')[0];
-                    using (SimpleTcpClient client = new SimpleTcpClient($"{IpClient}:3700"))
-                    {
-                        Dados = Dados.Replace("Peso;", "");
-                        client.Connect();
-
-                        client.Send(Dados);
-
-                        client.Events.DataSent += (s, f) => { client.Disconnect(); };
-                    }
-                }
-
-                
+              
             }
             catch(Exception Ex)
             {
                 Logger(Ex.ToString());
             }
         }
+
+       
 
         private static void Events_ClientDisconnected(object sender, ConnectionEventArgs e)
         {
