@@ -20,6 +20,7 @@ namespace ControlCenter.Client.Classes.Importacao
             InserirBonus.ImportaBonus();
             AtualizaBonus._AtualizaBonus();
             CargaDeProduto.CargaProduto();
+            AtualizarCargaDeProduto.AtualizarBonus();
         }
 
         internal class InserirBonus
@@ -59,7 +60,7 @@ namespace ControlCenter.Client.Classes.Importacao
 
                 DataTable BonusFiltrado = BonusBruto;
 
-                NpgsqlConnection lanConexão = new NpgsqlConnection("Server = 10.40.100.90; Port = 5432; User Id = sulfrios; Password = Eus00o19; Database = postgres;");
+                NpgsqlConnection lanConexão = new NpgsqlConnection(BancoPostGres.StringConexao);
                 string SQL = "select codbonus from lanexpedicao_bonus";
                 
                 DataTable Bonus = new DataTable();
@@ -104,7 +105,7 @@ namespace ControlCenter.Client.Classes.Importacao
 
                 foreach (DataRow rw in Bonus.Rows)
                 {
-                    NpgsqlConnection lanConexão = new NpgsqlConnection("Server = 10.40.100.90; Port = 5432; User Id = sulfrios; Password = Eus00o19; Database = postgres;");
+                    NpgsqlConnection lanConexão = new NpgsqlConnection(BancoPostGres.StringConexao);
                     string SQL = "insert into lanexpedicao_bonus(codbonus, descricao, data_importacao, idparceiro) values(@codbonus, @descricao, now(), @idparceiro)";
                     NpgsqlCommand cmd = new NpgsqlCommand(SQL, lanConexão);
 
@@ -173,7 +174,7 @@ namespace ControlCenter.Client.Classes.Importacao
 
                 DataTable BonusFiltrado = BonusBruto;
 
-                NpgsqlConnection lanConexão = new NpgsqlConnection("Server = 10.40.100.90; Port = 5432; User Id = sulfrios; Password = Eus00o19; Database = postgres;");
+                NpgsqlConnection lanConexão = new NpgsqlConnection(BancoPostGres.StringConexao);
                 string SQL = "select codbonus from lanexpedicao_bonus where data_cancelamento is null";
 
                 DataTable Bonus = new DataTable();
@@ -218,7 +219,7 @@ namespace ControlCenter.Client.Classes.Importacao
 
                 foreach (DataRow rw in Bonus.Rows)
                 {
-                    NpgsqlConnection lanConexão = new NpgsqlConnection("Server = 10.40.100.90; Port = 5432; User Id = sulfrios; Password = Eus00o19; Database = postgres;");
+                    NpgsqlConnection lanConexão = new NpgsqlConnection(BancoPostGres.StringConexao);
                     string SQL = "update lanexpedicao_bonus set data_cancelamento = @data_cancelamento, idusuario_cancelamento = 9999, idusuario_master_cancelamento = 9999 where codbonus = @codbonus ";
                     NpgsqlCommand cmd = new NpgsqlCommand(SQL, lanConexão);
 
@@ -253,7 +254,7 @@ namespace ControlCenter.Client.Classes.Importacao
         {
             private static DataTable Bonus()
             {
-                NpgsqlConnection lanConexão = new NpgsqlConnection("Server = 10.40.100.90; Port = 5432; User Id = sulfrios; Password = Eus00o19; Database = postgres;");
+                NpgsqlConnection lanConexão = new NpgsqlConnection(BancoPostGres.StringConexao);
                 //string SQL = "select expe.id, expe.codcarreg from lanexpedicao_carregamento as expe, lanconferencia_carregamento as conf ";
 
                 string SQL = "select expe.id, expe.codbonus from lanexpedicao_bonus as expe where expe.id not in(select distinct idbonus from lanconferencia_bonus)";
@@ -327,7 +328,7 @@ namespace ControlCenter.Client.Classes.Importacao
                     {
                         foreach (DataRow row in Produtos.Rows)
                         {
-                            NpgsqlConnection lanConexão = new NpgsqlConnection("Server = 10.40.100.90; Port = 5432; User Id = sulfrios; Password = Eus00o19; Database = postgres;");
+                            NpgsqlConnection lanConexão = new NpgsqlConnection(BancoPostGres.StringConexao);
                             string SQL = "insert into lanconferencia_bonus(codbonus, codprod, qt_real, idbonus) values(@codbonus, @codprod, @qt_real, @idbonus)";
                             NpgsqlCommand cmd = new NpgsqlCommand(SQL, lanConexão);
 
@@ -362,6 +363,97 @@ namespace ControlCenter.Client.Classes.Importacao
 
 
             }
+        }
+
+        internal class AtualizarCargaDeProduto
+        {
+            private static DataTable Bonus()
+            {
+                NpgsqlConnection lanConexão = new NpgsqlConnection(BancoPostGres.StringConexao);
+                string SQL = "select codbonus, codprod, qt_real from sulfrios.lanconferencia_bonus where idbonus in(select id from sulfrios.lanexpedicao_bonus where data_cancelamento is null and DATE_TRUNC('day', data_importacao) >= current_date - interval '4 days') order by codbonus desc";
+                DataTable Carregamentos = new DataTable();
+
+                NpgsqlDataAdapter adapter = new NpgsqlDataAdapter(SQL, lanConexão);
+
+                try
+                {
+                    lanConexão.Open();
+
+                    adapter.Fill(Carregamentos);
+
+                    lanConexão.Dispose();
+
+                    return Carregamentos;
+
+                }
+                catch (Exception Ex)
+                {
+                    Logger("Carga de Produtos: Erro ao Exportar Bônus: " + Ex.Message);
+                    return null;
+                }
+
+            }
+
+            private static DataTable Produtos(int numbonus)
+            {
+                OleDbConnection WinthorLogin = new OleDbConnection(BancoParceiro.StringConexao);
+                string SQL = "select codprod, sum(qtnf) as qt from pcbonusi where numbonus = ? group by codprod";
+
+                DataTable Carregamento = new DataTable();
+                OleDbDataAdapter adapter = new OleDbDataAdapter(SQL, WinthorLogin);
+
+                adapter.SelectCommand.Parameters.Add("@numbonus", OleDbType.Integer).Value = numbonus;
+
+                try
+                {
+                    WinthorLogin.Open();
+
+                    adapter.Fill(Carregamento);
+
+                    WinthorLogin.Dispose();
+
+                    return Carregamento;
+
+                }
+                catch (Exception Ex)
+                {
+                    Logger("Carga de Produtos: Erro ao Exportar Produtos: " + Ex.Message);
+                    return null;
+                }
+            }
+
+            public static void AtualizarBonus()
+            {
+                foreach (DataRow rw in Bonus().Rows)
+                {
+                    string Qt = Produtos(Convert.ToInt32(rw[0].ToString())).AsEnumerable().Where(x => x[0].ToString() == rw[1].ToString()).Select(x => x[1].ToString()).FirstOrDefault();
+
+                    NpgsqlConnection lanConexão = new NpgsqlConnection(BancoPostGres.StringConexao);
+                    string SQL = "update lanconferencia_carregamento set qt_real = @qt_real where codcarreg = @codcarreg and codprod = @codprod";
+                    NpgsqlCommand cmd = new NpgsqlCommand(SQL, lanConexão);
+
+                    cmd.Parameters.Add(new NpgsqlParameter("@qt_real", OleDbType.Date)).Value = rw[1];
+                    cmd.Parameters.Add(new NpgsqlParameter("@codcarreg", NpgsqlDbType.Integer)).Value = Convert.ToInt32(rw[0]);
+                    cmd.Parameters.Add(new NpgsqlParameter("@codprod", NpgsqlDbType.Integer)).Value = Convert.ToInt32(rw[0]);
+
+                    try
+                    {
+                        lanConexão.Open();
+
+                        cmd.ExecuteNonQuery();
+
+                        lanConexão.Dispose();
+
+                    }
+                    catch (Exception Ex)
+                    {
+                        Logger("Atualização de Produtos: Erro ao Bônus: " + Ex.Message);
+                    }
+
+                }
+
+            }
+
         }
 
     }

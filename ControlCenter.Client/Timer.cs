@@ -32,7 +32,7 @@ namespace ControlCenter.Client
         private static void ConfiguraTimer()
         {
             myTimer.Elapsed += new ElapsedEventHandler(TempoAtingindo);
-            myTimer.Interval = 120000;
+            myTimer.Interval = Convert.ToDouble(new ConfiguracaoDosParametros().DadosParametros.Where(x => x.Nome == "INTERVALO DE TEMPO SINCRONIZACAO CONTROL CENTER CLIENT").FirstOrDefault().Valor) *1000 ;
             myTimer.Enabled = true;
         }
 

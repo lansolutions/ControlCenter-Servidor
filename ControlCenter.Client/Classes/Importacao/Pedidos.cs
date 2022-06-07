@@ -18,7 +18,7 @@ namespace ControlCenter.Client.Classes.Importacao
         public static void SincronizaPedido()
         {
             InserirPedido.ImportaPedido();
-            AtualizaPedido._AtualizaPedido();
+            AtualizaPedido.AtualizarPedido();
             CargaDeProduto.CargaProduto();
         }
 
@@ -57,7 +57,7 @@ namespace ControlCenter.Client.Classes.Importacao
 
                 DataTable PedidoFiltrado = PedidoBruto;
 
-                NpgsqlConnection lanConexão = new NpgsqlConnection("Server = 10.40.100.90; Port = 5432; User Id = sulfrios; Password = Eus00o19; Database = postgres;");
+                NpgsqlConnection lanConexão = new NpgsqlConnection(BancoPostGres.StringConexao);
                 string SQL = "select codpedido from lanexpedicao_pedido";
                 
                 DataTable Pedido = new DataTable();
@@ -102,7 +102,7 @@ namespace ControlCenter.Client.Classes.Importacao
 
                 foreach (DataRow rw in Pedido.Rows)
                 {
-                    NpgsqlConnection lanConexão = new NpgsqlConnection("Server = 10.40.100.90; Port = 5432; User Id = sulfrios; Password = Eus00o19; Database = postgres;");
+                    NpgsqlConnection lanConexão = new NpgsqlConnection(BancoPostGres.StringConexao);
                     string SQL = "insert into lanexpedicao_pedido(codpedido, descricao, data_importacao, idparceiro) values(@codpedido, @descricao, now(), @idparceiro)";
                     NpgsqlCommand cmd = new NpgsqlCommand(SQL, lanConexão);
 
@@ -171,7 +171,7 @@ namespace ControlCenter.Client.Classes.Importacao
 
                 DataTable PedidoFiltrado = PedidoBruto;
 
-                NpgsqlConnection lanConexão = new NpgsqlConnection("Server = 10.40.100.90; Port = 5432; User Id = sulfrios; Password = Eus00o19; Database = postgres;");
+                NpgsqlConnection lanConexão = new NpgsqlConnection(BancoPostGres.StringConexao);
                 string SQL = "select codpedido from lanexpedicao_pedido where data_cancelamento is null";
 
                 DataTable Pedido = new DataTable();
@@ -210,13 +210,13 @@ namespace ControlCenter.Client.Classes.Importacao
                 }
             }
 
-            public static void _AtualizaPedido()
+            public static void AtualizarPedido()
             {
                 DataTable Pedido = FiltraPedido();
 
                 foreach (DataRow rw in Pedido.Rows)
                 {
-                    NpgsqlConnection lanConexão = new NpgsqlConnection("Server = 10.40.100.90; Port = 5432; User Id = sulfrios; Password = Eus00o19; Database = postgres;");
+                    NpgsqlConnection lanConexão = new NpgsqlConnection(BancoPostGres.StringConexao);
                     string SQL = "update lanexpedicao_pedido set data_cancelamento = @data_cancelamento, idusuario_cancelamento = 9999, idusuario_master_cancelamento = 9999 where codpedido = @codpedido ";
                     NpgsqlCommand cmd = new NpgsqlCommand(SQL, lanConexão);
 
@@ -251,7 +251,7 @@ namespace ControlCenter.Client.Classes.Importacao
         {
             private static DataTable Pedido()
             {
-                NpgsqlConnection lanConexão = new NpgsqlConnection("Server = 10.40.100.90; Port = 5432; User Id = sulfrios; Password = Eus00o19; Database = postgres;");
+                NpgsqlConnection lanConexão = new NpgsqlConnection(BancoPostGres.StringConexao);
                 //string SQL = "select expe.id, expe.codcarreg from lanexpedicao_carregamento as expe, lanconferencia_carregamento as conf ";
 
                 string SQL = "select expe.id, expe.codpedido from lanexpedicao_pedido as expe where expe.id not in(select distinct idpedido from lanconferencia_pedido)";
@@ -325,7 +325,7 @@ namespace ControlCenter.Client.Classes.Importacao
                     {
                         foreach (DataRow row in Produtos.Rows)
                         {
-                            NpgsqlConnection lanConexão = new NpgsqlConnection("Server = 10.40.100.90; Port = 5432; User Id = sulfrios; Password = Eus00o19; Database = postgres;");
+                            NpgsqlConnection lanConexão = new NpgsqlConnection(BancoPostGres.StringConexao);
                             string SQL = "insert into lanconferencia_pedido(codPedido, codprod, qt_real, idPedido) values(@codpedido, @codprod, @qt_real, @idpedido)";
                             NpgsqlCommand cmd = new NpgsqlCommand(SQL, lanConexão);
 

@@ -25,7 +25,7 @@ namespace ControlCenter.Client.Classes.Importacao
             {
                 DataTable UsuariosControlCenter = new DataTable();
 
-                NpgsqlConnection lanConexão = new NpgsqlConnection("Server = 10.40.100.90; Port = 5432; User Id = sulfrios; Password = Eus00o19; Database = postgres;");
+                NpgsqlConnection lanConexão = new NpgsqlConnection(BancoPostGres.StringConexao);
                 string SQL = "select idusuario_parceiro from lanusuarios";
                 NpgsqlDataAdapter adapter = new NpgsqlDataAdapter(SQL, lanConexão);
 
@@ -69,7 +69,7 @@ namespace ControlCenter.Client.Classes.Importacao
 
                     foreach (DataRow rw in NovosUsuarios.Rows)
                     {
-                        NpgsqlConnection lanConexão = new NpgsqlConnection("Server = 10.40.100.90; Port = 5432; User Id = sulfrios; Password = Eus00o19; Database = postgres;");
+                        NpgsqlConnection lanConexão = new NpgsqlConnection(BancoPostGres.StringConexao);
                         string SQL = "insert into lanusuarios(nome, usuario, senha, idsetor, idusuario_parceiro, usuario_utiliza_coletor, usuario_master_coletor, idusuario_inclusao, data_inclusao) values(@nome, @usuario, @senha, @idsetor, @idusuario_parceiro, @usuario_utiliza_coletor, @usuario_master_coletor, @idusuario_inclusao, now())";
 
                         NpgsqlCommand cmd = new NpgsqlCommand(SQL, lanConexão);
@@ -146,7 +146,7 @@ namespace ControlCenter.Client.Classes.Importacao
             {
                 DataTable UsuariosControlCenter = new DataTable();
 
-                NpgsqlConnection lanConexão = new NpgsqlConnection("Server = 10.40.100.90; Port = 5432; User Id = sulfrios; Password = Eus00o19; Database = postgres;");
+                NpgsqlConnection lanConexão = new NpgsqlConnection(BancoPostGres.StringConexao);
                 string SQL = "select idusuario_parceiro from lanusuarios";
                 NpgsqlDataAdapter adapter = new NpgsqlDataAdapter(SQL, lanConexão);
 
@@ -191,7 +191,7 @@ namespace ControlCenter.Client.Classes.Importacao
                     foreach (DataRow rw in NovosUsuarios.Rows)
                     {
 
-                        NpgsqlConnection lanConexão = new NpgsqlConnection("Server = 10.40.100.90; Port = 5432; User Id = sulfrios; Password = Eus00o19; Database = postgres;");
+                        NpgsqlConnection lanConexão = new NpgsqlConnection(BancoPostGres.StringConexao);
                         string SQL = "insert into lanusuarios(nome, usuario, senha, idsetor, idusuario_parceiro, usuario_utiliza_coletor, usuario_master_coletor, data_inclusao, idusuario_inclusao) values(@nome, @usuario,  crypt(@senha, gen_salt('bf')), @idsetor, @idusuario_parceiro, @usuario_utiliza_coletor, @usuario_master_coletor, now(), @idusuario_inclusao)";
 
 

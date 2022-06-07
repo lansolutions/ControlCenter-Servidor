@@ -5,7 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using static ControlCenter.Client.Classes.InstanciaJanelaPrincipal.Janela;
-using static ControlCenter.Client.Classes.IP_Socket.Socket;
 
 namespace ControlCenter.Client.Classes.Logs
 {

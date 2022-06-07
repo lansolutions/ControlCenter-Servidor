@@ -28,7 +28,7 @@ namespace ControlCenter.Client.Classes.Importacao
 
         private static void FiltraProduto()
         {
-            NpgsqlConnection lanConexão = new NpgsqlConnection("Server = 10.40.100.90; Port = 5432; User Id = sulfrios; Password = Eus00o19; Database = postgres;");
+            NpgsqlConnection lanConexão = new NpgsqlConnection(BancoPostGres.StringConexao);
             string SQL = "select idproduto_parceiro from lanprodutos";
 
             /*string SQL = "insert into lanprodutos (idproduto_parceiro, descricao, embalagem, codbarras1, codbarras2, codbarras3, codbarras4, qtunit1, qtunit2, qtunit3, qtunit4, permite_multiplicar, iduserinseriu) values (?,?,?,?,?,?,?,?,?,?,?,'N',0)";*/
@@ -136,7 +136,7 @@ namespace ControlCenter.Client.Classes.Importacao
 
         private static void ImportaProdutos(string idproduto_parceiro, string descricao, string embalagem, int idparceiro)
         {
-            NpgsqlConnection lanConexão = new NpgsqlConnection("Server = 10.40.100.90; Port = 5432; User Id = sulfrios; Password = Eus00o19; Database = postgres;");
+            NpgsqlConnection lanConexão = new NpgsqlConnection(BancoPostGres.StringConexao);
             string SQL = "insert into lanprodutos(idproduto_parceiro, descricao, embalagem, permite_multiplicar, idusuario_insercao, data_insercao, idparceiro, codbarras1, qtunit1) values(@idproduto_parceiro, @descricao, @embalagem, 'N', 9999, now(), @idparceiro, 0, 0) ";
 
 

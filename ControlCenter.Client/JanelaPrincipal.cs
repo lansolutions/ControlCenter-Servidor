@@ -87,8 +87,5 @@ namespace ControlCenter.Client
             Log.Logger("Sincronização Finalizada");
 
         }
-
-       
-
     }
 }
