@@ -26,15 +26,13 @@ namespace ControlCenter.Client
             Janela.Principal = this;
             new BancoPostGres();
             new BancoParceiro();
-
-            Notificacao.ConfigurarMenuNotificacao();
+            
         }
         private void JanelaPrincipal_Load(object sender, EventArgs e)
         {
-            Socket.IniciarServidor(null, null);      
+            Socket.IniciarServidor(null, null);
+            Notificacao.ConfigurarMenuNotificacao();
         }
-
-       
 
         public void Sincronizar(object sender, EventArgs e) 
         {
@@ -67,14 +65,13 @@ namespace ControlCenter.Client
             {
                 Log.Logger("Sincronização Automática Iniciada");
             }
-
-
-            ControleValidadeProdutos.Atualizar();
-            Produtos.SincronizaProdutos();
-            Carregamentos.SincronizaCarregamentos();
-            Bonus.SincronizaBonus();
-            Pedido.SincronizaPedido();
-            Usuarios.SincronizaUsuarios();
+            
+            new Produtos();
+            new Carregamentos();
+            new ControleValidadeProdutos();
+            new Bonus();            
+            new Pedido();            
+            new Usuarios();
 
             /*T =  Task.Run(() =>
             {

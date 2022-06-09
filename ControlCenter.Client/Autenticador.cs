@@ -14,7 +14,7 @@ namespace ControlCenter.Client
             Parceiro();
             ParceiroAutenticado = AutenticarParceiro();
         }
-        
+
         public class ParceiroCredenciado
         {
             public static string RazaoSocial { get; set; }

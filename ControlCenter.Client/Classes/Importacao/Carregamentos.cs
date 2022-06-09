@@ -14,20 +14,38 @@ namespace ControlCenter.Client.Classes.Importacao
 {
     public class Carregamentos
     {
-        public static void SincronizaCarregamentos()
+        public Carregamentos()
         {
-            InserirCarregamentos.ImportaCarregamento();
-            AtualizaCarregamentos.AtualizaCarregamento();
-            CargaDeProduto.CargaProduto();
-            AtualizarCargaDeProduto.AtualizarCarga();
+            try
+            {
+                
+                new InserirCarregamentos();               
+                new AtualizaCarregamentos();               
+                new CargaDeProduto();
+                new AtualizarCargaDeProduto();
+            }
+            catch (Exception Ex)
+            {
+                Logger(Ex.ToString());
+            }
+            
+        }
+
+        ~Carregamentos()
+        {
+
         }
 
         internal class InserirCarregamentos
         {
-            private static DataTable ExportaCarregamento()
+            public InserirCarregamentos()
+            {
+                ImportaCarregamento();
+            }
+            private DataTable ExportaCarregamentoSistemaParceiro()
             {
                 OleDbConnection WinthorLogin = new OleDbConnection(BancoParceiro.StringConexao);
-                string SQL = "select numcar as codcarreg, destino from pccarreg where datamon >= trunc(sysdate)-30 and numnotas <> 0";
+                string SQL = "select to_char(numcar) as numcar, destino from pccarreg where datamon >= trunc(sysdate)-30 and numnotas <> 0";
                 DataTable Carregamento = new DataTable();
                 OleDbDataAdapter adapter = new OleDbDataAdapter(SQL, WinthorLogin);
 
@@ -47,22 +65,17 @@ namespace ControlCenter.Client.Classes.Importacao
                     Logger("Importação de Carregamentos: Erro ao Exportar: " + Ex.Message);
                     return null;
                 }
-
-
             }
 
-            private static DataTable FiltraCarregamento()
+            private DataTable ExportaCarregamentoControlCenter()
             {
-                DataTable CarregamentosBruto = ExportaCarregamento();
-
-                DataTable CarregamentoFiltrado = CarregamentosBruto;
 
                 NpgsqlConnection lanConexão = new NpgsqlConnection(BancoPostGres.StringConexao);
-                string SQL = "select codcarreg from lanexpedicao_carregamento";
+                string SQL = "select codcarreg::varchar from lanexpedicao_carregamento";
 
-                DataTable Carregamentos = new DataTable();
-                Carregamentos.Columns.Add("codcarreg");
-                Carregamentos.PrimaryKey = new DataColumn[] { Carregamentos.Columns[0] };
+                DataTable dt = new DataTable();
+                /*dt.Columns.Add("codcarreg");
+                dt.PrimaryKey = new DataColumn[] { dt.Columns[0] };*/
 
                 NpgsqlDataAdapter adapter = new NpgsqlDataAdapter(SQL, lanConexão);
 
@@ -70,87 +83,76 @@ namespace ControlCenter.Client.Classes.Importacao
                 {
                     lanConexão.Open();
 
-                    adapter.Fill(Carregamentos);
+                    adapter.Fill(dt);
 
                     lanConexão.Dispose();
-
-
-                    for (int i = CarregamentosBruto.Rows.Count - 1; i >= 0; i--)
-                    {
-                        if (Carregamentos.Rows.Contains(CarregamentosBruto.Rows[i][0]))
-                        {
-                            DataRow dr = CarregamentoFiltrado.Rows[i];
-                            dr.Delete();
-                            CarregamentoFiltrado.AcceptChanges();
-                        }
-
-                    }
-
-                    return CarregamentoFiltrado;
-
                 }
                 catch (Exception Ex)
                 {
-                    Logger("Importação de Produtos: Erro ao importar: " + Ex.Message);
-
-
-                    return null;
+                    Logger("Importação de Produtos: Erro ao importar: " + Ex.Message); throw new Exception(Ex.ToString());
                 }
+
+                return dt;
             }
 
-            public static void ImportaCarregamento()
+            public void ImportaCarregamento()
             {
-                DataTable Carregamento = FiltraCarregamento();
+                DataTable dt = ExportaCarregamentoControlCenter().Copy();
+                DataTable dt2 = ExportaCarregamentoSistemaParceiro().Copy();
 
-                foreach (DataRow rw in Carregamento.Rows)
+                
+                int CarregamentosAdicionados = 0;
+
+                dt2.AsEnumerable().Where(x => !dt.AsEnumerable().Any(y => y.Field<string>(0) == x.Field<string>(0))).ToList().ForEach(x =>
                 {
                     NpgsqlConnection lanConexão = new NpgsqlConnection(BancoPostGres.StringConexao);
                     string SQL = "insert into lanexpedicao_carregamento(codcarreg, destino, data_importacao, idparceiro) values(@codcarreg, @destino, now(), @idparceiro)";
                     NpgsqlCommand cmd = new NpgsqlCommand(SQL, lanConexão);
-
-                    cmd.Parameters.Add(new NpgsqlParameter("@codcarreg", NpgsqlDbType.Integer)).Value = Convert.ToInt32(rw[0]);
-                    cmd.Parameters.Add(new NpgsqlParameter("@destino", OleDbType.VarChar)).Value = rw[1];
+                    
+                    cmd.Parameters.Add(new NpgsqlParameter("@codcarreg", NpgsqlDbType.Integer)).Value = Convert.ToInt32(x[0].ToString());
+                    cmd.Parameters.Add(new NpgsqlParameter("@destino", OleDbType.VarChar)).Value = x[1].ToString();
                     cmd.Parameters.Add(new NpgsqlParameter("@idparceiro", NpgsqlDbType.Integer)).Value = 2;
 
                     try
                     {
                         lanConexão.Open();
 
-                        cmd.ExecuteNonQuery();
+                        cmd.ExecuteNonQuery(); ++CarregamentosAdicionados;
 
                         lanConexão.Dispose();
 
                     }
                     catch (Exception Ex)
                     {
-                        Logger("Importação de Carregamentos: Erro ao importar: " + Ex.Message);
-
+                        Logger("Importação de Carregamentos: Erro ao importar: " + Ex.Message); throw new Exception(Ex.ToString());
                     }
-                }
+                });
 
-                if (Carregamento.Rows.Count != 0)
+                if (CarregamentosAdicionados != 0)
                 {
-                    Logger($"Importação de Carregamentos: {Carregamento.Rows.Count} Carregamento(s) Importado(s)");
-
+                    Logger($"Importação de Carregamentos: {CarregamentosAdicionados} Carregamento(s) Importado(s)");
                 }
-
 
             }
         }
 
         internal class CargaDeProduto
         {
-            private static DataTable Carregamento()
+            public CargaDeProduto()
+            {
+                CargaProduto();
+            }
+
+            ~CargaDeProduto()
+            {
+
+            }
+            private DataTable Carregamento()
             {
                 NpgsqlConnection lanConexão = new NpgsqlConnection(BancoPostGres.StringConexao);
-                //string SQL = "select expe.id, expe.codcarreg from lanexpedicao_carregamento as expe, lanconferencia_carregamento as conf ";
-
                 string SQL = "select expe.id, expe.codcarreg from lanexpedicao_carregamento as expe where expe.id not in(select distinct idcarregamento from lanconferencia_carregamento)";
 
                 DataTable Carregamentos = new DataTable();
-                /*Carregamentos.Columns.Add("codcarreg");
-                Carregamentos.PrimaryKey = new DataColumn[] { Carregamentos.Columns[0] };*/
-
                 NpgsqlDataAdapter adapter = new NpgsqlDataAdapter(SQL, lanConexão);
 
                 try
@@ -166,14 +168,12 @@ namespace ControlCenter.Client.Classes.Importacao
                 }
                 catch (Exception Ex)
                 {
-                    Logger("Carga de Produtos: Erro ao Exportar Carregamentos: " + Ex.Message);
-                    return null;
+                    Logger("Carga de Produtos: Erro ao Exportar Carregamentos: " + Ex.Message); throw new Exception(Ex.ToString());                    
                 }
             }
 
-            private static DataTable ExportaProduto(int numcar)
+            private DataTable ExportaProduto(int numcar)
             {
-
                 OleDbConnection WinthorLogin = new OleDbConnection(BancoParceiro.StringConexao);
                 string SQL = "select pcpedi.codprod, sum(pcpedi.qt) as qt from pcpedi where numcar = ? group by pcpedi.codprod";
 
@@ -195,14 +195,14 @@ namespace ControlCenter.Client.Classes.Importacao
                 }
                 catch (Exception Ex)
                 {
-                    Logger("Carga de Produtos: Erro ao Exportar Produtos: " + Ex.Message);
+                    Logger("Carga de Produtos: Erro ao Exportar Produtos: " + Ex.Message); throw new Exception(Ex.ToString());
                     return null;
                 }
 
 
             }
 
-            public static void CargaProduto()
+            public void CargaProduto()
             {
                 DataTable Carregamentos = Carregamento();
                 int CargaRealizada = 0;
@@ -255,43 +255,49 @@ namespace ControlCenter.Client.Classes.Importacao
 
         internal class AtualizaCarregamentos
         {
-            private static DataTable ExportaCarregamento()
+            public AtualizaCarregamentos()
+            {
+                AtualizaCarregamento();
+            }
+
+            ~AtualizaCarregamentos()
+            {
+
+            }
+            private DataTable ExportaCarregamentoSistemaParceiro()
             {
                 OleDbConnection WinthorLogin = new OleDbConnection(BancoParceiro.StringConexao);
-                string SQL = "select numcar as codcarreg, dt_cancel from pccarreg where datamon >= trunc(sysdate)-30 and dt_cancel is not null";
-                DataTable Carregamento = new DataTable();
+                string SQL = "select to_char(numcar) as numcar, to_char(dt_cancel) as dt_cancel from pccarreg where datamon >= trunc(sysdate)-30 and dt_cancel is not null";
+                
+                DataTable dt = new DataTable();
+                
                 OleDbDataAdapter adapter = new OleDbDataAdapter(SQL, WinthorLogin);
 
                 try
                 {
                     WinthorLogin.Open();
 
-                    adapter.Fill(Carregamento);
+                    adapter.Fill(dt);
 
-                    WinthorLogin.Dispose();
-
-                    return Carregamento;
+                    WinthorLogin.Dispose();                
 
                 }
                 catch (Exception Ex)
                 {
-                    Logger("Atualização de Carregamentos: Erro ao Exportar: " + Ex.Message);
-                    return null;
+                    Logger("Atualização de Carregamentos: Erro ao Exportar: " + Ex.Message); throw new Exception(Ex.ToString());
                 }
+
+                return dt;
             }
 
-            private static DataTable FiltraCarregamento()
+            private DataTable ExportaCarregamentoControlCenter()
             {
-                DataTable CarregamentosBruto = ExportaCarregamento();
-
-                DataTable CarregamentoFiltrado = CarregamentosBruto;
-
                 NpgsqlConnection lanConexão = new NpgsqlConnection(BancoPostGres.StringConexao);
-                string SQL = "select codcarreg from lanexpedicao_carregamento where data_cancelamento is null";
+                string SQL = "select codcarreg::varchar, data_cancelamento::varchar from lanexpedicao_carregamento where data_cancelamento is null";
 
-                DataTable Carregamentos = new DataTable();
-                Carregamentos.Columns.Add("codcarreg");
-                Carregamentos.PrimaryKey = new DataColumn[] { Carregamentos.Columns[0] };
+                DataTable dt = new DataTable();
+                dt.Columns.Add("codcarreg");
+                dt.PrimaryKey = new DataColumn[] { dt.Columns[0] };
 
                 NpgsqlDataAdapter adapter = new NpgsqlDataAdapter(SQL, lanConexão);
 
@@ -299,63 +305,54 @@ namespace ControlCenter.Client.Classes.Importacao
                 {
                     lanConexão.Open();
 
-                    adapter.Fill(Carregamentos);
+                    adapter.Fill(dt);
 
-                    lanConexão.Dispose();
-
-                    for (int i = CarregamentosBruto.Rows.Count - 1; i >= 0; i--)
-                    {
-                        if (Carregamentos.Rows.Contains(CarregamentosBruto.Rows[i][0]))
-                        {
-                            DataRow dr = CarregamentoFiltrado.Rows[i];
-                            dr.Delete();
-                            CarregamentoFiltrado.AcceptChanges();
-                        }
-
-                    }
-
-                    return CarregamentoFiltrado;
+                    lanConexão.Dispose();                  
 
                 }
                 catch (Exception Ex)
                 {
-                    Logger("Atualização de Carregamentos: Erro ao Filtrar: " + Ex.Message);
-
-                    return null;
+                    Logger("Atualização de Carregamentos: Erro ao Filtrar: " + Ex.Message); throw new Exception(Ex.ToString());                    
                 }
+
+                return dt;
             }
 
-            public static void AtualizaCarregamento()
+            public void AtualizaCarregamento()
             {
-                DataTable Carregamento = FiltraCarregamento();
+                DataTable dt = ExportaCarregamentoControlCenter().Copy();
+                DataTable dt2 = ExportaCarregamentoSistemaParceiro().Copy();
 
-                foreach (DataRow rw in Carregamento.Rows)
+                int CarregamentosAtualizados = 0;
+
+                dt2.AsEnumerable().Where(x => !dt.AsEnumerable().Any(y => y.Field<string>("codcarreg") == x.Field<string>("numcar"))).ToList().ForEach(x =>
                 {
                     NpgsqlConnection lanConexão = new NpgsqlConnection(BancoPostGres.StringConexao);
                     string SQL = "update lanexpedicao_carregamento set data_cancelamento = @data_cancelamento, idusuario_cancelamento = 9999, idusuario_master_cancelamento = 9999 where codcarreg = @codcarreg ";
                     NpgsqlCommand cmd = new NpgsqlCommand(SQL, lanConexão);
 
-                    cmd.Parameters.Add(new NpgsqlParameter("@data_cancelamento", OleDbType.Date)).Value = rw[1];
-                    cmd.Parameters.Add(new NpgsqlParameter("@codcarreg", NpgsqlDbType.Integer)).Value = Convert.ToInt32(rw[0]);
+                    cmd.Parameters.Add(new NpgsqlParameter("@data_cancelamento", OleDbType.Date)).Value = Convert.ToDateTime(x[1]);
+                    cmd.Parameters.Add(new NpgsqlParameter("@codcarreg", NpgsqlDbType.Integer)).Value = Convert.ToInt32(x[0]);
 
                     try
                     {
                         lanConexão.Open();
 
-                        cmd.ExecuteNonQuery();
+                        cmd.ExecuteNonQuery(); ++CarregamentosAtualizados;
 
                         lanConexão.Dispose();
 
                     }
                     catch (Exception Ex)
                     {
-                        Logger("Atualização de Produtos: Erro ao Atualizar: " + Ex.Message);
+                        Logger("Atualização de Produtos: Erro ao Atualizar: " + Ex.Message); throw new Exception(Ex.ToString());
                     }
-                }
 
-                if (Carregamento.Rows.Count != 0)
+                });
+
+                if (CarregamentosAtualizados != 0)
                 {
-                    Logger($"Atualização de Carregamentos: {Carregamento.Rows.Count} Carregamento(s) Atualizado(s)");
+                    Logger($"Atualização de Carregamentos: {CarregamentosAtualizados} Carregamento(s) Atualizado(s)");
                 }
 
 
@@ -364,10 +361,20 @@ namespace ControlCenter.Client.Classes.Importacao
 
         internal class AtualizarCargaDeProduto
         {
-            private static DataTable Carregamentos() 
+            public AtualizarCargaDeProduto()
+            {
+                AtualizarCarga();
+            }
+
+            ~AtualizarCargaDeProduto()
+            {
+
+            }
+
+            private DataTable ConferenciaCarregamentoControlCenter() 
             {
                 NpgsqlConnection lanConexão = new NpgsqlConnection(BancoPostGres.StringConexao);
-                string SQL = "select codcarreg, codprod, qt_real from sulfrios.lanconferencia_carregamento where idcarregamento in(select id from sulfrios.lanexpedicao_carregamento where data_cancelamento is null and DATE_TRUNC('day', data_importacao) >= current_date - interval '4 days') order by codcarreg desc";
+                string SQL = "select codcarreg::varchar, round(qt_real, 6) as qt_real, codprod from sulfrios.lanconferencia_carregamento where idcarregamento in(select id from sulfrios.lanexpedicao_carregamento where data_cancelamento is null and DATE_TRUNC('day', data_importacao) >= current_date - interval '4 days') order by codcarreg desc";
                 DataTable Carregamentos = new DataTable();               
 
                 NpgsqlDataAdapter adapter = new NpgsqlDataAdapter(SQL, lanConexão);
@@ -391,65 +398,104 @@ namespace ControlCenter.Client.Classes.Importacao
 
             }
 
-            private static DataTable Produtos(int numcar)
+            private DataTable ConferenciaCarregamentoSistemaParceiro()
             {
+                var dt = ConferenciaCarregamentoControlCenter().AsEnumerable().Select(x => new { codcarreg = x.Field<string>("codcarreg") }).Distinct().ToList();
 
                 OleDbConnection WinthorLogin = new OleDbConnection(BancoParceiro.StringConexao);
-                string SQL = "select pcpedi.codprod, sum(pcpedi.qt) as qt from pcpedi where numcar = ? group by pcpedi.codprod";
+                string SQL = "select pcpedi.qt, to_char(numcar) as numcar, to_char(codprod) as codprod from pcpedi where numcar = ?";
 
-                DataTable Carregamento = new DataTable();
+                DataTable dt2 = new DataTable();
                 OleDbDataAdapter adapter = new OleDbDataAdapter(SQL, WinthorLogin);
 
-                adapter.SelectCommand.Parameters.Add("@numcar", OleDbType.Integer).Value = numcar;
+                adapter.SelectCommand.Parameters.Add("@numcar", OleDbType.Integer);
 
                 try
                 {
                     WinthorLogin.Open();
 
-                    adapter.Fill(Carregamento);
+                    foreach (var row in dt)
+                    {
+                        adapter.SelectCommand.Parameters["@numcar"].Value = Convert.ToInt32(row.codcarreg);
+                        adapter.Fill(dt2);
+                    }                   
 
                     WinthorLogin.Dispose();
-
-                    return Carregamento;
-
                 }
                 catch (Exception Ex)
                 {
-                    Logger("Carga de Produtos: Erro ao Exportar Produtos: " + Ex.Message);
-                    return null;
+                    Logger("Carga de Produtos: Erro ao Exportar Produtos: " + Ex.Message); throw new Exception(Ex.ToString());
                 }
-            }
 
-            public static void AtualizarCarga()
-            {
-                foreach (DataRow rw in Carregamentos().Rows)
+                return dt2;
+            }           
+            
+            public void AtualizarCarga()
+            {         
+                int ProdutosAlterados = 0;
+                
+                var CarregamentoSistemaParceiroAgrupado = from temp in ConferenciaCarregamentoSistemaParceiro().AsEnumerable()
+                            group temp by new
+                            {
+                                NumCar = temp.Field<string>("numcar"),
+                                CodProd = temp.Field<string>("codprod")
+                            } into xGroup
+                            select new
+                            {
+                                NumCar = xGroup.Key.NumCar,
+                                CodProd = xGroup.Key.CodProd,
+                                Qt = xGroup.Sum(temp => temp.Field<decimal>("qt"))
+                            };
+
+
+                var CarregamentoControlCenterAgrupado = from temp in ConferenciaCarregamentoControlCenter().AsEnumerable()
+                                                          group temp by new
+                                                          {
+                                                              CodCarreg = temp.Field<string>("codcarreg"),
+                                                              CodProd = temp.Field<int>("codprod").ToString()
+                                                          } into xGroup
+                                                          select new
+                                                          {
+                                                              CodCarreg = xGroup.Key.CodCarreg,
+                                                              CodProd = xGroup.Key.CodProd,
+                                                              Qt = xGroup.Sum(temp => temp.Field<decimal>("qt_real"))
+                                                          };
+
+
+                CarregamentoSistemaParceiroAgrupado.Where(x => CarregamentoControlCenterAgrupado.Any(y => y.CodCarreg == x.NumCar && y.CodProd == x.CodProd && y.Qt != x.Qt)).ToList().ForEach(x =>
                 {
-                   string Qt =  Produtos(Convert.ToInt32(rw[0].ToString())).AsEnumerable().Where(x => x[0].ToString() == rw[1].ToString()).Select(x => x[1].ToString()).FirstOrDefault();
-
                     NpgsqlConnection lanConexão = new NpgsqlConnection(BancoPostGres.StringConexao);
-                    string SQL = "update lanconferencia_carregamento set qt_real = @qt_real where codcarreg = @codcarreg and codprod = @codprod";
+                    string SQL = "update sulfrios.lanconferencia_carregamento set qt_real = @qt_real where codcarreg = @codcarreg and codprod = @codprod";
                     NpgsqlCommand cmd = new NpgsqlCommand(SQL, lanConexão);
 
-                    cmd.Parameters.Add(new NpgsqlParameter("@qt_real", OleDbType.Date)).Value = rw[1];
-                    cmd.Parameters.Add(new NpgsqlParameter("@codcarreg", NpgsqlDbType.Integer)).Value = Convert.ToInt32(rw[0]);
-                    cmd.Parameters.Add(new NpgsqlParameter("@codprod", NpgsqlDbType.Integer)).Value = Convert.ToInt32(rw[0]);
+                    cmd.Parameters.Add("@qt_real", NpgsqlDbType.Numeric);
+                    cmd.Parameters.Add("@codcarreg", NpgsqlDbType.Integer);
+                    cmd.Parameters.Add("@codprod", NpgsqlDbType.Integer);
 
                     try
                     {
                         lanConexão.Open();
 
-                        cmd.ExecuteNonQuery();
+                        cmd.Parameters["@qt_real"].Value = x.Qt;
+                        cmd.Parameters["@codcarreg"].Value = Convert.ToInt32(x.NumCar);
+                        cmd.Parameters["@codprod"].Value = Convert.ToInt32(x.CodProd);
+
+                        cmd.ExecuteNonQuery(); ProdutosAlterados++;
 
                         lanConexão.Dispose();
 
                     }
                     catch (Exception Ex)
                     {
-                        Logger("Atualização de Produtos: Erro ao Atualizar: " + Ex.Message);
+                        Logger("Carga de Produtos: Erro ao Atualizar Carga: " + Ex.Message); throw new Exception(Ex.ToString());
                     }
 
+                });
+
+                if (ProdutosAlterados != 0)
+                {
+                    Logger($"Atualização de Produtos: {ProdutosAlterados} Produto(s) atualizado(s)");
                 }
-                   
             }
             
         }

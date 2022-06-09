@@ -14,14 +14,27 @@ namespace ControlCenter.Client.Classes.Importacao
 {
     public class Usuarios
     {
-        public static void SincronizaUsuarios()
+        public Usuarios()
         {
-            ImportaUsuarios.ImportarUsuarios();
-        }
+            try
+            {
+                new ImportaUsuarios();
+                new AtualizaUsuarios();
+            }
+            catch(Exception Ex)
+            {
+                Logger(Ex.ToString());
+            }
+            
+        }       
 
         public class ImportaUsuarios
         {
-            public static DataTable ExportaUsuariosControlCenter()
+            public ImportaUsuarios()
+            {
+                ImportarUsuarios();
+            }
+            public DataTable ExportaUsuariosControlCenter()
             {
                 DataTable UsuariosControlCenter = new DataTable();
 
@@ -40,14 +53,40 @@ namespace ControlCenter.Client.Classes.Importacao
                 }
                 catch (Exception Ex)
                 {
-                    Logger("Importação de Produtos: Erro ao importar: " + Ex.Message);
+                    Logger("Importação de Produtos: Erro ao importar: " + Ex.Message); throw new Exception(Ex.Message);
                 }
 
 
                 return UsuariosControlCenter;
             }
+            public DataTable ExportaUsuariosSistemaParceiro()
+            {
+                DataTable UsuariosSistemaParceiro = new DataTable();
 
-            public static void ImportarUsuarios()
+                OleDbConnection WinthorLogin = new OleDbConnection(BancoParceiro.StringConexao);
+                string SQL = "select nome, usuariobd, decrypt(senhabd, usuariobd), matricula from pcempr where situacao = 'A' and tipo = 'F' ";
+
+                OleDbDataAdapter adapter = new OleDbDataAdapter(SQL, WinthorLogin);
+
+                try
+                {
+                    WinthorLogin.Open();
+
+                    adapter.Fill(UsuariosSistemaParceiro);
+
+                    WinthorLogin.Dispose();
+
+                }
+                catch (Exception Ex)
+                {
+                    Logger("Importação de Usuários: Erro ao Importar: " + Ex.Message); throw new Exception(Ex.Message);
+
+                }
+
+                return UsuariosSistemaParceiro;
+            }
+
+            public void ImportarUsuarios()
             {
                 DataTable UsuariosControlCenter = ExportaUsuariosControlCenter();
                 DataTable UsuariosSistemaParceiro = ExportaUsuariosSistemaParceiro();
@@ -94,7 +133,7 @@ namespace ControlCenter.Client.Classes.Importacao
                         }
                         catch (Exception Ex)
                         {
-                            Logs.Log.Logger("Importação de Usuários@ Erro ao Importar@ " + Ex.Message); 
+                            Logs.Log.Logger("Importação de Usuários@ Erro ao Importar@ " + Ex.Message); throw new Exception(Ex.Message);
                             return;
                         }
                     }
@@ -104,39 +143,12 @@ namespace ControlCenter.Client.Classes.Importacao
                     Logger(e.ToString());
                 }
 
-                if(NovosUsuarios.Rows.Count != 0)
+                if (NovosUsuarios.Rows.Count != 0)
                 {
                     Logs.Log.Logger($"Importação de Usuários: {NovosUsuarios.Rows.Count} Novo(s) Usuário(s) Importado(s)");
                 }
 
 
-            }
-
-            public static DataTable ExportaUsuariosSistemaParceiro()
-            {
-                DataTable UsuariosSistemaParceiro = new DataTable();
-
-                OleDbConnection WinthorLogin = new OleDbConnection(BancoParceiro.StringConexao);
-                string SQL = "select nome, usuariobd, decrypt(senhabd, usuariobd), matricula from pcempr where situacao = 'A' and tipo = 'F' ";
-
-                OleDbDataAdapter adapter = new OleDbDataAdapter(SQL, WinthorLogin);
-
-                try
-                {
-                    WinthorLogin.Open();
-
-                    adapter.Fill(UsuariosSistemaParceiro);
-
-                    WinthorLogin.Dispose();
-
-                }
-                catch (Exception Ex)
-                {
-                    Logger("Importação de Usuários: Erro ao Importar: " + Ex.Message);
-
-                }
-
-                return UsuariosSistemaParceiro;
             }
         }
 
@@ -161,7 +173,7 @@ namespace ControlCenter.Client.Classes.Importacao
                 }
                 catch (Exception Ex)
                 {
-                    Logger("Importação de Produtos: Erro ao importar: " + Ex.Message);
+                    Logger("Importação de Produtos: Erro ao importar: " + Ex.Message); throw new Exception(Ex.Message);
                 }
 
 
@@ -217,7 +229,7 @@ namespace ControlCenter.Client.Classes.Importacao
                         }
                         catch (Exception Ex)
                         {
-                            Logs.Log.Logger("Importação de Usuários: Erro ao Importar: " + Ex.Message);
+                            Logs.Log.Logger("Importação de Usuários: Erro ao Importar: " + Ex.Message); throw new Exception(Ex.Message);
                             return;
                         }
                     }
@@ -253,7 +265,7 @@ namespace ControlCenter.Client.Classes.Importacao
                 }
                 catch (Exception Ex)
                 {
-                    Logger("Importação de Usuários: Erro ao Importar: " + Ex.Message);
+                    Logger("Importação de Usuários: Erro ao Importar: " + Ex.Message); throw new Exception(Ex.Message);
 
                 }
 

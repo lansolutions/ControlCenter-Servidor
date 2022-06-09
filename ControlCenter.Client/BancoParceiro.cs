@@ -17,7 +17,6 @@ namespace ControlCenter.Client
     {
         public static string StringConexao = string.Empty;
         
-        private string Diretorio = @"C:\ControlCenter\bin\ControlCenter.ini";
 
         private static string ENCRYPTKEY = "AlLg09*2017";
 
@@ -33,7 +32,7 @@ namespace ControlCenter.Client
 
         public BancoParceiro()
         {
-            Autenticador autenticador = new Autenticador();
+            new Autenticador();
             
            if(Autenticador.ParceiroAutenticado == true)
            {

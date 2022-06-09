@@ -44,5 +44,7 @@ namespace ControlCenter.Client
                 MessageBox.Show(Ex.Message, "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
+       
     }
 }

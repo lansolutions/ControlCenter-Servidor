@@ -14,122 +14,111 @@ namespace ControlCenter.Client.Classes.Importacao
 {
     public class Pedido
     {
-
-        public static void SincronizaPedido()
+        public Pedido()
         {
-            InserirPedido.ImportaPedido();
-            AtualizaPedido.AtualizarPedido();
-            CargaDeProduto.CargaProduto();
+            try
+            {
+                new InserirPedido();
+                new AtualizaPedido();
+                new CargaDeProduto();
+            }
+            catch(Exception Ex)
+            {
+                Logger(Ex.ToString());
+            }
         }
 
         internal class InserirPedido
         {
-            private static DataTable ExportaPedido()
+            public InserirPedido()
+            {
+                ImportaPedido();
+            }
+            private DataTable ExportaPedidoSistemaParceiro()
             {
                 OleDbConnection WinthorLogin = new OleDbConnection(BancoParceiro.StringConexao);
-                string SQL = "select numped, cliente as descricao from pcpedc, pcclient where pcclient.codcli = pcpedc.CODCLI and pcpedc.DATA >= trunc(sysdate) - 30 and pcpedc.DTCANCEL is null and pcpedc.NUMCAR = 0 and posicao in('L','M','F')";
-                DataTable Pedido = new DataTable();
+                string SQL = "select to_char(numped), cliente as descricao from pcpedc, pcclient where pcclient.codcli = pcpedc.CODCLI and pcpedc.DATA >= trunc(sysdate) - 30 and pcpedc.DTCANCEL is null and pcpedc.NUMCAR = 0 and posicao in('L','M','F')";
+                DataTable dt = new DataTable();
                 OleDbDataAdapter adapter = new OleDbDataAdapter(SQL, WinthorLogin);
 
                 try
                 {
                     WinthorLogin.Open();
 
-                    adapter.Fill(Pedido);
+                    adapter.Fill(dt);
 
                     WinthorLogin.Dispose();
-
-                    return Pedido;
-
                 }
                 catch (Exception Ex)
                 {
-                    Logger("Importação de Produtos: Erro ao Exportar: " + Ex.Message);
-                    return null;
+                    Logger("Importação de Produtos: Erro ao Exportar: " + Ex.Message); throw new Exception(Ex.Message);
                 }
 
-
+                return dt;
             }
 
-            private static DataTable FiltraPedido()
-            {
-                DataTable PedidoBruto = ExportaPedido();
-
-                DataTable PedidoFiltrado = PedidoBruto;
-
+            private DataTable ExportaPedidoControlConter()
+            {               
                 NpgsqlConnection lanConexão = new NpgsqlConnection(BancoPostGres.StringConexao);
-                string SQL = "select codpedido from lanexpedicao_pedido";
+                string SQL = "select codpedido::varchar from lanexpedicao_pedido";
                 
-                DataTable Pedido = new DataTable();
-                Pedido.Columns.Add("codpedido");
-                Pedido.PrimaryKey = new DataColumn[] { Pedido.Columns[0] };
-
+                DataTable dt = new DataTable();
+               
                 NpgsqlDataAdapter adapter = new NpgsqlDataAdapter(SQL, lanConexão);
 
                 try
                 {
                     lanConexão.Open();
 
-                    adapter.Fill(Pedido);
+                    adapter.Fill(dt);
 
                     lanConexão.Dispose();
-
-
-                    for (int i = PedidoBruto.Rows.Count - 1; i >= 0; i--)
-                    {
-                        if (Pedido.Rows.Contains(PedidoBruto.Rows[i][0]))
-                        {
-                            DataRow dr = PedidoFiltrado.Rows[i];
-                            dr.Delete();
-                            PedidoFiltrado.AcceptChanges();
-                        }
-
-                    }
-
-                    return PedidoFiltrado;
-
                 }
                 catch (Exception Ex)
                 {
-                    Logger("Importação de Pedido: Erro ao importar: " + Ex.Message);
-                    return null;
+                    Logger("Importação de Pedido: Erro ao importar: " + Ex.Message); throw new Exception(Ex.Message);
                 }
+
+                return dt;
             }
 
-            public static void ImportaPedido()
+            public void ImportaPedido()
             {
-                DataTable Pedido = FiltraPedido();
+                DataTable dt = ExportaPedidoControlConter().Copy();
+                DataTable dt2 = ExportaPedidoSistemaParceiro().Copy();
 
-                foreach (DataRow rw in Pedido.Rows)
+                int PedidosAdicionados = 0;
+
+                dt2.AsEnumerable().Where(x => !dt.AsEnumerable().Any(y => y.Field<string>(0) == x.Field<string>(0))).ToList().ForEach(x =>
                 {
                     NpgsqlConnection lanConexão = new NpgsqlConnection(BancoPostGres.StringConexao);
                     string SQL = "insert into lanexpedicao_pedido(codpedido, descricao, data_importacao, idparceiro) values(@codpedido, @descricao, now(), @idparceiro)";
                     NpgsqlCommand cmd = new NpgsqlCommand(SQL, lanConexão);
 
-                    cmd.Parameters.Add(new NpgsqlParameter("@codpedido", NpgsqlDbType.Bigint)).Value = Convert.ToInt64(rw[0]);
-                    cmd.Parameters.Add(new NpgsqlParameter("@descricao", OleDbType.VarChar)).Value = rw[1];
+                    cmd.Parameters.Add(new NpgsqlParameter("@codpedido", NpgsqlDbType.Bigint)).Value = Convert.ToInt64(x[0]);
+                    cmd.Parameters.Add(new NpgsqlParameter("@descricao", OleDbType.VarChar)).Value = x[1];
                     cmd.Parameters.Add(new NpgsqlParameter("@idparceiro", NpgsqlDbType.Integer)).Value = 2;
 
                     try
                     {
                         lanConexão.Open();
 
-                        cmd.ExecuteNonQuery();
+                        cmd.ExecuteNonQuery(); ++PedidosAdicionados;
 
                         lanConexão.Dispose();
 
                     }
                     catch (Exception Ex)
                     {
-                        Logger("Importação de Pedidos: Erro ao importar: " + Ex.Message);
+                        Logger("Importação de Pedidos: Erro ao importar: " + Ex.Message); throw new Exception(Ex.Message);
 
                     }
-                }
+                });
+                                   
 
-                if (Pedido.Rows.Count != 0)
+                if(PedidosAdicionados != 0)
                 {
-                    Logger($"Importação de Pedidos: {Pedido.Rows.Count} Pedido(s) Importado(s)");
-
+                    Logger($"Importação de Pedidos: {PedidosAdicionados} Pedido(s) Importado(s)");
                 }
 
 
@@ -138,45 +127,38 @@ namespace ControlCenter.Client.Classes.Importacao
 
         internal class AtualizaPedido
         {
-            private static DataTable ExportaPedido()
+            public AtualizaPedido()
+            {
+                AtualizarPedido();
+            }
+            private DataTable ExportaPedidoSistemaParceiro()
             {
                 OleDbConnection WinthorLogin = new OleDbConnection(BancoParceiro.StringConexao);
-                string SQL = "select numped as codpedido, dtcancel from pcpedc where data >= trunc(sysdate)-30 and dtcancel is not null";
-                DataTable Pedido = new DataTable();
+                string SQL = "select to_char(numped) as numped, dtcancel from pcpedc where data >= trunc(sysdate)-30 and dtcancel is not null";
+                DataTable dt = new DataTable();
                 OleDbDataAdapter adapter = new OleDbDataAdapter(SQL, WinthorLogin);
 
                 try
                 {
                     WinthorLogin.Open();
 
-                    adapter.Fill(Pedido);
+                    adapter.Fill(dt);
 
                     WinthorLogin.Dispose();
-
-                    return Pedido;
-
                 }
                 catch (Exception Ex)
                 {
-                    Logger("Atualização de Pedido: Erro ao Exportar: " + Ex.Message);
-                    return null;
+                    Logger("Atualização de Pedido: Erro ao Exportar: " + Ex.Message); throw new Exception(Ex.Message);
                 }
 
-
+                return dt;
             }
 
-            private static DataTable FiltraPedido()
+            private DataTable ExportaPedidoControlConter()
             {
-                DataTable PedidoBruto = ExportaPedido();
-
-                DataTable PedidoFiltrado = PedidoBruto;
-
                 NpgsqlConnection lanConexão = new NpgsqlConnection(BancoPostGres.StringConexao);
-                string SQL = "select codpedido from lanexpedicao_pedido where data_cancelamento is null";
-
-                DataTable Pedido = new DataTable();
-                Pedido.Columns.Add("codpedido");
-                Pedido.PrimaryKey = new DataColumn[] { Pedido.Columns[0] };
+                string SQL = "select codpedido::varchar from lanexpedicao_pedido where data_cancelamento is null";
+                DataTable dt = new DataTable();               
 
                 NpgsqlDataAdapter adapter = new NpgsqlDataAdapter(SQL, lanConexão);
 
@@ -184,63 +166,54 @@ namespace ControlCenter.Client.Classes.Importacao
                 {
                     lanConexão.Open();
 
-                    adapter.Fill(Pedido);
+                    adapter.Fill(dt);
 
-                    lanConexão.Dispose();
-
-                    for (int i = PedidoBruto.Rows.Count - 1; i >= 0; i--)
-                    {
-                        if (Pedido.Rows.Contains(PedidoBruto.Rows[i][0]))
-                        {
-                            DataRow dr = PedidoFiltrado.Rows[i];
-                            dr.Delete();
-                            PedidoFiltrado.AcceptChanges();
-                        }
-
-                    }
-
-                    return PedidoFiltrado;
-
+                    lanConexão.Dispose();                 
                 }
                 catch (Exception Ex)
                 {
-                    Logger("Atualização de Pedido: Erro ao Filtrar: " + Ex.Message);
-
-                    return null;
+                    Logger("Atualização de Pedido: Erro ao Filtrar: " + Ex.Message); throw new Exception(Ex.Message);
                 }
+
+                return dt;
             }
 
-            public static void AtualizarPedido()
+            public void AtualizarPedido()
             {
-                DataTable Pedido = FiltraPedido();
+                DataTable dt = ExportaPedidoControlConter().Copy();
+                DataTable dt2 = ExportaPedidoSistemaParceiro().Copy();
 
-                foreach (DataRow rw in Pedido.Rows)
+                int PedidosAtualizados = 0;
+
+                dt2.AsEnumerable().Where(x => !dt.AsEnumerable().Any(y => y.Field<string>("codpedido") == x.Field<string>("numped"))).ToList().ForEach(x =>
                 {
                     NpgsqlConnection lanConexão = new NpgsqlConnection(BancoPostGres.StringConexao);
                     string SQL = "update lanexpedicao_pedido set data_cancelamento = @data_cancelamento, idusuario_cancelamento = 9999, idusuario_master_cancelamento = 9999 where codpedido = @codpedido ";
                     NpgsqlCommand cmd = new NpgsqlCommand(SQL, lanConexão);
 
-                    cmd.Parameters.Add(new NpgsqlParameter("@data_cancelamento", OleDbType.Date)).Value = rw[1];
-                    cmd.Parameters.Add(new NpgsqlParameter("@codpedido", NpgsqlDbType.Bigint)).Value = Convert.ToInt64(rw[0]);
+                    cmd.Parameters.Add(new NpgsqlParameter("@data_cancelamento", OleDbType.Date)).Value = x[1];
+                    cmd.Parameters.Add(new NpgsqlParameter("@codpedido", NpgsqlDbType.Bigint)).Value = Convert.ToInt64(x[0]);
 
                     try
                     {
                         lanConexão.Open();
 
-                        cmd.ExecuteNonQuery();
+                        cmd.ExecuteNonQuery(); ++PedidosAtualizados;
 
                         lanConexão.Dispose();
 
                     }
                     catch (Exception Ex)
                     {
-                        Logger("Atualização de Pedidos: Erro ao Atualizar: " + Ex.Message);
+                        Logger("Atualização de Pedidos: Erro ao Atualizar: " + Ex.Message); throw new Exception(Ex.Message);
                     }
-                }
 
-                if (Pedido.Rows.Count != 0)
+                });
+                    
+
+                if (PedidosAtualizados != 0)
                 {
-                    Logger($"Atualização de Pedido: {Pedido.Rows.Count} Pedido(s) Atualizado(s)");
+                    Logger($"Atualização de Pedido: {PedidosAtualizados} Pedido(s) Atualizado(s)");
                 }
 
 
@@ -249,16 +222,17 @@ namespace ControlCenter.Client.Classes.Importacao
         
         internal class CargaDeProduto
         {
-            private static DataTable Pedido()
+            public CargaDeProduto()
+            {
+                CargaProduto();
+            }
+            private DataTable Pedido()
             {
                 NpgsqlConnection lanConexão = new NpgsqlConnection(BancoPostGres.StringConexao);
-                //string SQL = "select expe.id, expe.codcarreg from lanexpedicao_carregamento as expe, lanconferencia_carregamento as conf ";
 
                 string SQL = "select expe.id, expe.codpedido from lanexpedicao_pedido as expe where expe.id not in(select distinct idpedido from lanconferencia_pedido)";
 
-                DataTable Pedido = new DataTable();
-                /*Carregamentos.Columns.Add("codcarreg");
-                Carregamentos.PrimaryKey = new DataColumn[] { Carregamentos.Columns[0] };*/
+                DataTable Pedido = new DataTable();                
 
                 NpgsqlDataAdapter adapter = new NpgsqlDataAdapter(SQL, lanConexão);
 
@@ -275,12 +249,12 @@ namespace ControlCenter.Client.Classes.Importacao
                 }
                 catch (Exception Ex)
                 {
-                    Logger("Carga de Produtos: Erro ao Exportar Pedido: " + Ex.Message);
+                    Logger("Carga de Produtos: Erro ao Exportar Pedido: " + Ex.Message); throw new Exception(Ex.Message);
                     return null;
                 }
             }
 
-            private static DataTable ExportaProduto(Int64 numPedido)
+            private DataTable ExportaProduto(Int64 numPedido)
             {
 
                 OleDbConnection WinthorLogin = new OleDbConnection(BancoParceiro.StringConexao);
@@ -304,14 +278,14 @@ namespace ControlCenter.Client.Classes.Importacao
                 }
                 catch (Exception Ex)
                 {
-                    Logger("Carga de Produtos: Erro ao Exportar Produtos: " + Ex.Message);
+                    Logger("Carga de Produtos: Erro ao Exportar Produtos: " + Ex.Message); throw new Exception(Ex.Message);
                     return null;
                 }
 
 
             }
 
-            public static void CargaProduto()
+            public void CargaProduto()
             {
                 DataTable _Pedido = Pedido();
                 int CargaRealizada = 0;
@@ -345,7 +319,7 @@ namespace ControlCenter.Client.Classes.Importacao
                             }
                             catch (Exception Ex)
                             {
-                                Logger("Carga de Produtos: Erro ao Realizar Carga: " + Ex.Message);
+                                Logger("Carga de Produtos: Erro ao Realizar Carga: " + Ex.Message); throw new Exception(Ex.Message);
                             }
                         }
                         CargaRealizada += 1;

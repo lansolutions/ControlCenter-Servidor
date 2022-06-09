@@ -21,8 +21,6 @@ namespace ControlCenter.Client.Classes.IP_Socket
     {
         public static SimpleTcpServer server;
 
-        public static object Code128Rendering { get; private set; }
-
         private static void InstanciarServidor()
         {
             string IP = string.Empty;
@@ -59,18 +57,7 @@ namespace ControlCenter.Client.Classes.IP_Socket
             
             
         }
-
-        public static string Teste()
-        {
-            string Clientes = string.Empty;
-
-            foreach(string Cliente in server.GetClients())
-            {
-                Clientes += $"{Cliente} {Environment.NewLine}"; 
-            }
-            return Clientes;
-        }
-
+      
         private static void Events_DataReceived(object sender, DataReceivedEventArgs e)
         {
             Logger("Dados Recebidos");
@@ -165,9 +152,7 @@ namespace ControlCenter.Client.Classes.IP_Socket
                 Logger(Ex.ToString());
             }
         }
-
-       
-
+        
         private static void Events_ClientDisconnected(object sender, ConnectionEventArgs e)
         {
             Logger($"Cliente {e.IpPort} Desconectado");
@@ -216,9 +201,6 @@ namespace ControlCenter.Client.Classes.IP_Socket
             Principal.pictureBox2.Visible = true; Principal.pictureBox1.Visible = false;
             Principal.label5.Visible = true; Principal.label4.Visible = false;
         }
-
-     
-
     }
 
     
