@@ -10,40 +10,22 @@ namespace ControlCenter.Client.Classes.Logs
 {
     
     public class Log 
-    {            
+    {
+
+        static List<string> Logs = new List<string>();
         public static void Logger(string Logs)
         {
-
-            Thread T = new Thread(new ThreadStart(() =>
-            {
-               
-            }));
-            
-            Task.Run(() =>
-            {
-                
-            });
-
             try
             {
+                AtualizaLogs();
                 string LogAnterior = string.Empty;
-                string NovoLog = $"{DateTime.Now}: {Logs}{Environment.NewLine}";
-                Principal.richTextBox1.Invoke(new Action(() => LogAnterior = Principal.richTextBox1.Text));
-                Principal.richTextBox1.Invoke(new Action(() => Principal.richTextBox1.Text = NovoLog));
-                Principal.richTextBox1.Invoke(new Action(() => Principal.richTextBox1.Text += LogAnterior));
-                /*LogAnterior = Principal.richTextBox1.Text;
-                Principal.richTextBox1.Text = NovoLog;
-                Principal.richTextBox1.Text += LogAnterior;*/
+                string NovoLog = $"{DateTime.Now}: {Logs}{Environment.NewLine}";               
                 LogTxt(NovoLog);
             }
             catch (Exception ex)
             {
                 MessageBox.Show(ex.ToString());
             }
-
-            
-
-
         }
 
         public static void LogCliente(string Movimentacao, string IP)
@@ -60,7 +42,14 @@ namespace ControlCenter.Client.Classes.Logs
                 Clientes.Replace(IP, "");
             }
 
-            Principal.richTextBox2.Invoke(new Action(() => Principal.richTextBox2.Text = Clientes));
+            if (Principal.richTextBox2.InvokeRequired)
+            {
+                Principal.richTextBox2.Invoke(new Action(() => Principal.richTextBox2.Text = Clientes));                
+            }
+            else
+            {
+                Principal.richTextBox2.Text = Clientes;
+            }            
         }
 
 
@@ -92,14 +81,35 @@ namespace ControlCenter.Client.Classes.Logs
                 using (StreamWriter outputFile = new StreamWriter(PathLogHoje + "Log.txt", append: true))
                 {
                     outputFile.Write(Log);
+                    
                 }
+
+                AtualizaLogs();
             }
             catch
             {
 
             }
+        }
 
+        private static void AtualizaLogs()
+        {
+            string PathLog = @"C:\LanSolutions\ControlCenter-Servidor\Logs\";
 
+            string Data = DateTime.Now.ToString("dd" + "MM" + "yyyy");          
+
+            string PathLogHoje = PathLog + Data + @"\";
+
+            string[] Logs = File.ReadAllLines(PathLogHoje + "Log.txt");
+
+            if (Principal.richTextBox1.InvokeRequired)
+            {
+                Principal.richTextBox1.Invoke(new Action(() => Principal.richTextBox1.Text = string.Join(Environment.NewLine, Logs)));
+            }
+            else
+            {
+                Principal.richTextBox1.Text = string.Join(Environment.NewLine, Logs);
+            }
 
         }
     }

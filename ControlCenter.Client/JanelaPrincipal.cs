@@ -19,14 +19,13 @@ namespace ControlCenter.Client
 {
     public partial class JanelaPrincipal : Form
     {
-        public static Task T;
+        private static bool SincronizacaoEmAndamento;
         public JanelaPrincipal()
         {
             InitializeComponent();
             Janela.Principal = this;
             new BancoPostGres();
-            new BancoParceiro();
-            
+            new BancoParceiro();            
         }
         private void JanelaPrincipal_Load(object sender, EventArgs e)
         {
@@ -42,18 +41,10 @@ namespace ControlCenter.Client
                 return;
             }
 
-            if(T != null)
-            {                
-                if (T.IsCompleted == false && sender != null)
-                {
-                    MessageBox.Show("Sincronização não Realizada! Existe uma Sincronização em Andamento");
-                    return;
-                }
-                else if(T.IsCompleted == false)
-                {
-                    Log.Logger("Sincronização não Realizada! Existe uma Sincronização em Andamento");
-                    return;
-                }
+            if(SincronizacaoEmAndamento)
+            {
+                MessageBox.Show("Sincronização não Realizada! Existe uma Sincronização em Andamento");
+                return;
             }
 
             if (sender != null)
@@ -65,21 +56,17 @@ namespace ControlCenter.Client
             {
                 Log.Logger("Sincronização Automática Iniciada");
             }
-            
+
+            SincronizacaoEmAndamento = true;
+
             new Produtos();
-            new Carregamentos();
+            new Carregamentos(); 
             new ControleValidadeProdutos();
-            new Bonus();            
-            new Pedido();            
+            new Bonus();
+            new Pedido();
             new Usuarios();
 
-            /*T =  Task.Run(() =>
-            {
-                
-            });
-             
-
-            Task.WhenAll(T).Wait(); */
+            SincronizacaoEmAndamento = false;
 
             Log.Logger("Sincronização Finalizada");
 
